@@ -110,10 +110,8 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
         - Years of Experience Required: ${data?.experience}
         - Tech Stacks: ${data?.techStack}
         ${cvData ? `
-        Candidate Information from CV:
-        - Skills: ${cvData.skills.join(', ')}
-        - Experience: ${cvData.experience.map(exp => `${exp.position} at ${exp.company}`).join(', ')}
-        - Education: ${cvData.education.map(edu => `${edu.degree} from ${edu.institution}`).join(', ')}
+        Candidate CV Text:
+        ${cvData.rawText}
         ` : ''}
 
         The questions should assess skills in ${data?.techStack} development and best practices, problem-solving, and experience handling complex requirements. Please format the output strictly as an array of JSON objects without any additional labels, code blocks, or explanations. Return only the JSON array with questions and answers.

@@ -101,24 +101,24 @@ export const RecordAnswer = ({
     } else {
       setAiResult(null); // Reset AI result when starting new recording
       startSpeechToText();
-      
+
       // Start real-time analysis if webcam is enabled
       if (isWebCam && webcamRef.current && webcamRef.current.video) {
         try {
-          // Get audio stream for tone analysis
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          
+          // Check for microphone permission before attempting to get audio stream
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
           // Initialize analysis manager if needed
           if (!analysisManagerRef.current) {
             analysisManagerRef.current = new AnalysisManager();
           }
-          
+
           // Start analysis
           const success = await analysisManagerRef.current.start(
             webcamRef.current.video,
-            audioStream
+            stream
           );
-          
+
           if (success) {
             setIsAnalyzing(true);
             toast.success("Analysis started", {
@@ -131,9 +131,16 @@ export const RecordAnswer = ({
           }
         } catch (error) {
           console.error("Error starting analysis:", error);
-          toast.error("Analysis error", {
-            description: "Could not access media devices for analysis",
-          });
+          // Check if the error is related to permissions
+          if (error instanceof DOMException && error.name === 'NotAllowedError') {
+            toast.error("Microphone Permission Denied", {
+              description: "Please grant microphone access in your device settings to use this feature.",
+            });
+          } else {
+            toast.error("Analysis error", {
+              description: "Could not access media devices for analysis",
+            });
+          }
         }
       }
     }

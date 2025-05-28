@@ -10,22 +10,8 @@ export interface User {
 }
 
 export interface CVData {
-  fullName: string;
-  email: string;
-  phone?: string;
-  education: Array<{
-    degree: string;
-    institution: string;
-    year: string;
-  }>;
-  experience: Array<{
-    position: string;
-    company: string;
-    duration: string;
-    responsibilities: string[];
-  }>;
-  skills: string[];
-  languages?: string[];
+  rawText: string;
+  timestamp: string;
 }
 
 export interface Interview {

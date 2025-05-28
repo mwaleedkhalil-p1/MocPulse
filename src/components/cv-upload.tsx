@@ -4,6 +4,10 @@ import { Card } from './ui/card';
 import { CVData } from '@/types';
 import { Loader } from 'lucide-react';
 import { toast } from 'sonner';
+import * as pdfjs from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 interface CVUploadProps {
   onCVData: (data: CVData) => void;
@@ -23,34 +27,33 @@ export function CVUpload({ onCVData }: CVUploadProps) {
 
     setIsProcessing(true);
     try {
-      // Mock CV data
-      const mockCVData: CVData = {
-        fullName: "John Doe",
-        email: "john.doe@example.com",
-        phone: "+1234567890",
-        education: [
-          {
-            degree: "Master of Computer Science",
-            institution: "Tech University",
-            year: "2020"
-          }
-        ],
-        experience: [
-          {
-            position: "Senior Software Engineer",
-            company: "Tech Corp",
-            duration: "3 years",
-            responsibilities: ["Led development team", "Implemented key features"]
-          }
-        ],
-        skills: ["React", "TypeScript", "Node.js", "AWS"],
-        languages: ["English", "Spanish"]
-      };
-
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Read the PDF file
+      const fileArrayBuffer = await file.arrayBuffer();
+      const pdfData = new Uint8Array(fileArrayBuffer);
       
-      onCVData(mockCVData);
+      // Load and parse the PDF document
+      const pdfDoc = await pdfjs.getDocument({ data: pdfData }).promise;
+      const numPages = pdfDoc.numPages;
+      
+      // Extract text from all pages
+      let fullText = '';
+      console.log('Processing PDF with', numPages, 'pages...');
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n';
+      }
+
+      // Log the extracted text for verification
+      console.log('Extracted Text:\n', fullText);
+
+      // Pass the raw text to AI for processing
+      const cvData: CVData = {
+        rawText: fullText,
+        timestamp: new Date().toISOString()
+      };
+      
+      onCVData(cvData);
       toast.success('CV processed successfully');
     } catch (error) {
       console.error('Error processing PDF:', error);

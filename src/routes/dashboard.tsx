@@ -7,14 +7,16 @@ import { db } from "@/config/firebase.config";
 import { Interview } from "@/types";
 import { useAuth } from "@clerk/clerk-react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export const Dashboard = () => {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export const Dashboard = () => {
       (error) => {
         console.log("Error on fetching : ", error);
         toast.error("Error..", {
-          description: "SOmething went wrong.. Try again later..",
+          description: "Something went wrong. Please try again later..",
         });
         setLoading(false);
       }
@@ -49,10 +51,17 @@ export const Dashboard = () => {
     return () => unsubscribe();
   }, [userId]);
 
+  const filteredAndSortedInterviews = useMemo(() => {
+    return interviews
+      .filter(interview =>
+        interview.position.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  }, [interviews, searchQuery]);
+
   return (
     <>
       <div className="flex w-full items-center justify-between">
-        {/* headings */}
         <Headings
           title="Dashboard"
           description="Create and start you AI Mock interview"
@@ -65,15 +74,26 @@ export const Dashboard = () => {
       </div>
 
       <Separator className="my-8" />
-      {/* content section */}
+
+      <div className="w-full flex items-center gap-4 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search by job role..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
 
       <div className="md:grid md:grid-cols-3 gap-3 py-4">
         {loading ? (
           Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-24 md:h-32 rounded-md" />
           ))
-        ) : interviews.length > 0 ? (
-          interviews.map((interview) => (
+        ) : filteredAndSortedInterviews.length > 0 ? (
+          filteredAndSortedInterviews.map((interview) => (
             <InterviewPin key={interview.id} interview={interview} />
           ))
         ) : (
@@ -89,8 +109,9 @@ export const Dashboard = () => {
             </h2>
 
             <p className="w-full md:w-96 text-center text-sm text-neutral-400 mt-4">
-              There is no available data to show. Please add some new mock
-              interviews
+              {searchQuery
+                ? "No interviews match your search criteria"
+                : "There is no available data to show. Please add some new mock interviews"}
             </p>
 
             <Link to={"/generate/create"} className="mt-4">
