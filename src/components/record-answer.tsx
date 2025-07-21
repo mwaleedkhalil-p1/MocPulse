@@ -172,24 +172,28 @@ export const RecordAnswer = ({
     setIsAiGenerating(true);
     
     // Get real-time analysis results if available
-    let realTimeAnalysis = {
+    let realTimeAnalysis: {
+      toneAnalysis: ToneAnalysis;
+      emotionAnalysis: EmotionAnalysis;
+      gestureAnalysis: GestureAnalysis;
+    } = {
       toneAnalysis: {
         pitch: 50,
         speed: 0,
-        confidence: "neutral" as const,
+        confidence: "hesitant",
         feedback: "No tone analysis available"
       },
       emotionAnalysis: {
-        primary: "neutral" as const,
+        primary: "neutral",
         intensity: 0,
         timeline: [],
         feedback: "No emotion analysis available"
       },
       gestureAnalysis: {
-        posture: "neutral" as const,
-        handMovements: "minimal" as const,
-        facialEngagement: "low" as const,
-        bodyLanguage: "neutral" as const,
+        posture: "neutral",
+        handMovements: "minimal",
+        facialEngagement: "low",
+        bodyLanguage: "neutral",
         feedback: "No gesture analysis available"
       }
     };
@@ -198,9 +202,14 @@ export const RecordAnswer = ({
     if (isAnalyzing && analysisManagerRef.current) {
       // Update tone analyzer with the final speech text
       analysisManagerRef.current.updateSpeechText(userAns);
-      
-      // Get the analysis results
-      realTimeAnalysis = analysisManagerRef.current.getAnalysisResults();
+
+      // Get the analysis results and merge with defaults
+      const analysisResults = analysisManagerRef.current.getAnalysisResults();
+      realTimeAnalysis = {
+        toneAnalysis: analysisResults.toneAnalysis,
+        emotionAnalysis: analysisResults.emotionAnalysis,
+        gestureAnalysis: analysisResults.gestureAnalysis
+      };
     }
     
     const prompt = `

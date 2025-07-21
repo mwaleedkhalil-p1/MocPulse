@@ -1,8 +1,6 @@
 import * as faceapi from 'face-api.js';
 import { Camera } from '@mediapipe/camera_utils';
 import { Pose, Results } from '@mediapipe/pose';
-import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
-import { POSE_CONNECTIONS } from '@mediapipe/pose';
 import { EmotionAnalysis, GestureAnalysis, ToneAnalysis } from '@/types';
 
 // Initialize face-api models
@@ -28,7 +26,7 @@ export class ToneAnalyzer {
   private analyzer: AnalyserNode | null = null;
   private microphone: MediaStreamAudioSourceNode | null = null;
   private dataArray: Uint8Array | null = null;
-  private stream: MediaStream | null = null;
+
   private isAnalyzing: boolean = false;
   private pitchValues: number[] = [];
   private wordCount: number = 0;
@@ -41,7 +39,6 @@ export class ToneAnalyzer {
 
   async start(stream: MediaStream) {
     try {
-      this.stream = stream;
       this.audioContext = new AudioContext();
       this.analyzer = this.audioContext.createAnalyser();
       this.analyzer.fftSize = 2048;
@@ -122,10 +119,10 @@ export class ToneAnalyzer {
     const speed = durationMinutes > 0 ? Math.round(this.wordCount / durationMinutes) : 0;
     
     // Determine confidence level based on score
-    let confidence: "confident" | "hesitant" | "authoritative" | "nervous" | "enthusiastic" = "neutral";
+    let confidence: "confident" | "hesitant" | "authoritative" | "nervous" | "enthusiastic" = "hesitant";
     if (this.confidenceScore > 80) confidence = "confident";
     else if (this.confidenceScore > 60) confidence = "enthusiastic";
-    else if (this.confidenceScore > 40) confidence = "neutral";
+    else if (this.confidenceScore > 40) confidence = "authoritative";
     else if (this.confidenceScore > 20) confidence = "hesitant";
     else confidence = "nervous";
     
@@ -235,7 +232,7 @@ export class EmotionAnalyzer {
     let primary: "happiness" | "sadness" | "anger" | "surprise" | "frustration" | "neutral" = "neutral";
     let intensity = 50;
     let feedback = "Maintain consistent emotional engagement throughout your answer.";
-    
+
     // Calculate dominant emotion
     if (this.emotionTimeline.length > 0) {
       const emotionCounts: Record<string, number> = {
@@ -246,33 +243,36 @@ export class EmotionAnalyzer {
         frustration: 0,
         neutral: 0
       };
-      
+
       this.emotionTimeline.forEach(item => {
         if (emotionCounts[item.emotion] !== undefined) {
           emotionCounts[item.emotion]++;
         }
       });
-      
+
       // Find most frequent emotion
       let maxCount = 0;
+      let dominantEmotion = "neutral";
       Object.entries(emotionCounts).forEach(([emotion, count]) => {
         if (count > maxCount) {
           maxCount = count;
-          primary = emotion as any;
+          dominantEmotion = emotion;
         }
       });
-      
+
+      primary = dominantEmotion as "happiness" | "sadness" | "anger" | "surprise" | "frustration" | "neutral";
+
       // Calculate intensity (percentage of dominant emotion)
       intensity = Math.round((maxCount / this.emotionTimeline.length) * 100);
-      
+
       // Generate feedback based on analysis
-      if (primary === "neutral" && intensity > 70) {
+      if (dominantEmotion === "neutral" && intensity > 70) {
         feedback = "Try to show more emotional engagement to connect better with your audience.";
-      } else if (primary === "happiness" && intensity > 70) {
+      } else if (dominantEmotion === "happiness" && intensity > 70) {
         feedback = "Your positive demeanor is excellent, but vary your expressions for key points.";
-      } else if (primary === "sadness" || primary === "anger") {
+      } else if (dominantEmotion === "sadness" || dominantEmotion === "anger") {
         feedback = "Try to maintain a more positive emotional tone during your responses.";
-      } else if (emotionCounts.neutral < 10) {
+      } else if (emotionCounts["neutral"] < 10) {
         feedback = "Your emotional expressiveness is good. Continue to match emotions to content.";
       }
     }
