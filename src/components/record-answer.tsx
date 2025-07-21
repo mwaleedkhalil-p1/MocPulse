@@ -66,7 +66,9 @@ export const RecordAnswer = ({
   const [aiResult, setAiResult] = useState<AIResponse | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recordAgainLoading, setRecordAgainLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [resultsStartIndex, setResultsStartIndex] = useState(0);
   
   // References
   const webcamRef = useRef<WebCam>(null);
@@ -100,6 +102,7 @@ export const RecordAnswer = ({
       }
     } else {
       setAiResult(null); // Reset AI result when starting new recording
+      setResultsStartIndex(results.length); // Reset start index for new recording
       startSpeechToText();
 
       // Start real-time analysis if webcam is enabled
@@ -247,54 +250,85 @@ export const RecordAnswer = ({
     }
   };
 
-  const recordNewAnswer = () => {
-    setUserAnswer("");
-    setAiResult(null); // Reset AI result for new recording
-    
-    // Stop current recording if active
-    if (isRecording) {
-      stopSpeechToText();
-    }
-    
-    // Stop analysis if it's running
-    if (isAnalyzing && analysisManagerRef.current) {
-      analysisManagerRef.current.stop();
-      setIsAnalyzing(false);
-    }
-    
-    // Start new recording
-    startSpeechToText();
-    
-    // Start real-time analysis if webcam is enabled
-    if (isWebCam && webcamRef.current && webcamRef.current.video) {
-      try {
-        // Get audio stream for tone analysis
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(audioStream => {
-            // Initialize analysis manager if needed
-            if (!analysisManagerRef.current) {
-              analysisManagerRef.current = new AnalysisManager();
-            }
-            
-            // Start analysis
-            analysisManagerRef.current.start(
-              webcamRef.current!.video!,
-              audioStream
-            ).then(success => {
-              if (success) {
-                setIsAnalyzing(true);
-                toast.success("Analysis started", {
-                  description: "Real-time analysis is now active",
-                });
-              }
-            });
-          })
-          .catch(error => {
-            console.error("Error accessing audio:", error);
-          });
-      } catch (error) {
-        console.error("Error starting analysis:", error);
+  const recordNewAnswer = async () => {
+    try {
+      setRecordAgainLoading(true);
+
+      // Reset states first
+      setUserAnswer("");
+      setAiResult(null);
+
+      // Stop current recording if active and wait for it to complete
+      if (isRecording) {
+        stopSpeechToText();
+        // Give some time for the speech recognition to properly stop
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+
+      // Stop analysis if it's running
+      if (isAnalyzing && analysisManagerRef.current) {
+        analysisManagerRef.current.stop();
+        setIsAnalyzing(false);
+      }
+
+      // Set the start index for new results (ignore previous results)
+      setResultsStartIndex(results.length);
+
+      // Start new recording
+      startSpeechToText();
+
+      // Start real-time analysis if webcam is enabled
+      if (isWebCam && webcamRef.current && webcamRef.current.video) {
+        try {
+          // Check for microphone permission before attempting to get audio stream
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          // Initialize analysis manager if needed
+          if (!analysisManagerRef.current) {
+            analysisManagerRef.current = new AnalysisManager();
+          }
+
+          // Start analysis
+          const success = await analysisManagerRef.current.start(
+            webcamRef.current.video,
+            audioStream
+          );
+
+          if (success) {
+            setIsAnalyzing(true);
+            toast.success("Recording restarted", {
+              description: "New recording started with real-time analysis",
+            });
+          } else {
+            toast.error("Analysis failed", {
+              description: "Could not start real-time analysis. Recording will continue without analysis.",
+            });
+          }
+        } catch (error) {
+          console.error("Error starting analysis:", error);
+          // Check if the error is related to permissions
+          if (error instanceof DOMException && error.name === 'NotAllowedError') {
+            toast.error("Microphone Permission Denied", {
+              description: "Please grant microphone access to use analysis features.",
+            });
+          } else {
+            toast.error("Analysis error", {
+              description: "Could not access media devices for analysis. Recording will continue without analysis.",
+            });
+          }
+        }
+      } else {
+        toast.success("Recording restarted", {
+          description: "New recording started",
+        });
+      }
+    } catch (error) {
+      console.error("Error in recordNewAnswer:", error);
+      toast.error("Error", {
+        description: "Failed to restart recording. Please try again.",
+      });
+    } finally {
+      setRecordAgainLoading(false);
     }
   };
 
@@ -358,18 +392,20 @@ export const RecordAnswer = ({
   };
 
   useEffect(() => {
-    const combineTranscripts = results
+    // Only use results from the current recording session (after resultsStartIndex)
+    const currentSessionResults = results.slice(resultsStartIndex);
+    const combineTranscripts = currentSessionResults
       .filter((result): result is ResultType => typeof result !== "string")
       .map((result) => result.transcript)
       .join(" ");
 
     setUserAnswer(combineTranscripts);
-    
+
     // Update tone analyzer with current speech text if analyzing
     if (isAnalyzing && analysisManagerRef.current && combineTranscripts) {
       analysisManagerRef.current.updateSpeechText(combineTranscripts);
     }
-  }, [results, isAnalyzing]);
+  }, [results, isAnalyzing, resultsStartIndex]);
   
   // Cleanup effect to stop analysis when component unmounts
   useEffect(() => {
@@ -431,8 +467,16 @@ export const RecordAnswer = ({
 
         <TooltipButton
           content="Record Again"
-          icon={<RefreshCw className="min-w-5 min-h-5" />}
+          icon={
+            recordAgainLoading ? (
+              <Loader className="min-w-5 min-h-5 animate-spin" />
+            ) : (
+              <RefreshCw className="min-w-5 min-h-5" />
+            )
+          }
           onClick={recordNewAnswer}
+          disbaled={recordAgainLoading}
+          loading={recordAgainLoading}
         />
 
         <TooltipButton

@@ -77,55 +77,60 @@ const HomePage = () => {
         </div>
 
         {/* Features Section */}
-        <div className="w-full mt-8 space-y-8">
-          <h2 className="text-2xl font-semibold text-center mb-8">Complete Interview Preparation Workflow</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Authentication */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">1. User Authentication</h3>
-              <p className="text-muted-foreground">Secure sign-up and login system to protect your interview data and track your progress.</p>
-            </div>
+       <div className="w-full mt-8 space-y-8">
+  <h2 className="text-2xl font-semibold text-center mb-8">Complete Interview Preparation Workflow</h2>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {/* Authentication */}
+    <div className="p-6 rounded-lg bg-accent/10 space-y-3">
+      <h3 className="text-lg font-semibold text-primary">1. User Authentication</h3>
+      <p className="text-muted-foreground">Secure sign-up and login system to protect your interview data and track your progress.</p>
+    </div>
 
-            {/* CV Upload */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">2. CV Analysis</h3>
-              <p className="text-muted-foreground">Upload your CV for AI analysis to generate personalized interview questions based on your experience.</p>
-            </div>
+    {/* CV Upload */}
+    <div className="p-6 rounded-lg bg-accent/10 space-y-3">
+      <h3 className="text-lg font-semibold text-primary">2. CV Analysis</h3>
+      <p className="text-muted-foreground">Upload your CV for AI analysis to generate personalized interview questions based on your experience.</p>
+    </div>
 
-            {/* Interview Generation */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">3. AI Question Selection</h3>
-              <p className="text-muted-foreground">AI analyzes your CV and job details to select relevant questions from our diverse question bank, ensuring targeted interview practice.</p>
-            </div>
+    {/* Interview Generation */}
+    <div className="p-6 rounded-lg bg-accent/10 space-y-3">
+      <h3 className="text-lg font-semibold text-primary">3. AI Question Generation</h3>
+      <p className="text-muted-foreground">AI dynamically generates interview questions tailored to your skills, experience, and job role.</p>
+    </div>
 
-            {/* Mock Interview */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">4. Personalized Interview</h3>
-              <p className="text-muted-foreground">Experience a dynamic interview tailored to your experience level, with questions adapted from our extensive bank based on your profile.</p>
-            </div>
+    {/* Mock Interview */}
+    <div className="p-6 rounded-lg bg-accent/10 space-y-3">
+      <h3 className="text-lg font-semibold text-primary">4. Personalized Interview</h3>
+      <p className="text-muted-foreground">Experience an adaptive interview session, with real-time AI-generated questions crafted for your profile.</p>
+    </div>
 
-            {/* Real-time Feedback */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">5. Real-time Analysis</h3>
-              <p className="text-muted-foreground">Instant feedback on your responses, body language, and communication skills.</p>
-            </div>
+   {/* Real-time Feedback */}
+<div className="p-6 rounded-lg bg-accent/10 space-y-3">
+  <h3 className="text-lg font-semibold text-primary">5. Real-time Analysis</h3>
+  <p className="text-muted-foreground">
+    Real-time tracking of your voice tone, facial expressions, and body gestures using specialized libraries.
+    
+  </p>
+</div>
 
-            {/* Comprehensive Report */}
-            <div className="p-6 rounded-lg bg-accent/10 space-y-3">
-              <h3 className="text-lg font-semibold text-primary">6. Performance Report</h3>
-              <p className="text-muted-foreground">Detailed analysis report with scores, improvements, and personalized recommendations.</p>
-            </div>
-          </div>
 
-          <div className="flex justify-center mt-8">
-            <Link to={"/generate"} className="w-full max-w-md">
-              <Button className="w-full">
-                Start Your Interview Preparation <Sparkles className="ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
+    {/* Comprehensive Report */}
+    <div className="p-6 rounded-lg bg-accent/10 space-y-3">
+      <h3 className="text-lg font-semibold text-primary">6. Performance Report</h3>
+      <p className="text-muted-foreground">Detailed analysis report with scores, improvements, and personalized recommendations.</p>
+    </div>
+  </div>
+
+  <div className="flex justify-center mt-8">
+    <Link to={"/generate"} className="w-full max-w-md">
+      <Button className="w-full">
+        Start Your Interview Preparation <Sparkles className="ml-2" />
+      </Button>
+    </Link>
+  </div>
+</div>
+
       </Container>
     </div>
   );

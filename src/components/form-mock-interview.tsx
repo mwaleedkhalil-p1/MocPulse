@@ -26,6 +26,7 @@ import { chatSession } from "@/scripts";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   serverTimestamp,
   updateDoc,
@@ -65,6 +66,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
 
   const { isValid, isSubmitting } = form.formState;
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [cvData, setCvData] = useState<CVData | null>(null);
   const navigate = useNavigate();
   const { userId } = useAuth();
@@ -181,6 +183,22 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
     }
   }, [initialData, form]);
 
+  const handleDelete = async () => {
+    if (!initialData?.id) return;
+
+    try {
+      setDeleteLoading(true);
+      await deleteDoc(doc(db, "interviews", initialData.id));
+      toast("Deleted!", { description: "Interview deleted successfully" });
+      navigate("/generate", { replace: true });
+    } catch (error) {
+      console.error("Error deleting interview:", error);
+      toast("Error", { description: "Failed to delete interview. Please try again." });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="w-full flex-col space-y-4">
       <CustomBreadCrumb
@@ -192,8 +210,17 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
         <Headings title={title} isSubHeading />
 
         {initialData && (
-          <Button size={"icon"} variant={"ghost"}>
-            <Trash2 className="min-w-4 min-h-4 text-red-500" />
+          <Button
+            size={"icon"}
+            variant={"ghost"}
+            onClick={handleDelete}
+            disabled={deleteLoading || loading}
+          >
+            {deleteLoading ? (
+              <Loader className="min-w-4 min-h-4 text-red-500 animate-spin" />
+            ) : (
+              <Trash2 className="min-w-4 min-h-4 text-red-500" />
+            )}
           </Button>
         )}
       </div>
@@ -276,11 +303,12 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
                 <FormControl>
                   <Input
                     type="number"
+                    min="0"
                     className="h-12"
                     disabled={loading}
                     placeholder="eg:- 5 Years"
                     {...field}
-                    value={field.value || ""}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
               </FormItem>
@@ -327,7 +355,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
                     disabled={loading}
                     placeholder="Number of questions (1-10)"
                     {...field}
-                    value={field.value || "5"}
+                    value={field.value ?? "5"}
                   />
                 </FormControl>
               </FormItem>
