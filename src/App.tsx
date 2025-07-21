@@ -57,6 +57,9 @@ const App = () => {
             <Route path="feedback/:interviewId" element={<Feedback />} />
           </Route>
         </Route>
+
+        {/* Catch-all route for 404s - redirect to home */}
+        <Route path="*" element={<HomePage />} />
       </Routes>
     </Router>
   );

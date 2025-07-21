@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api|assets|models|favicon\\.svg|pdf\\.worker\\.min\\.mjs|_next|.*\\.).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
