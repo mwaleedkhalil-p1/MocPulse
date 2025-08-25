@@ -42,14 +42,12 @@ export const TooltipButton = ({
   return (
     <TooltipProvider delayDuration={delay}>
       <Tooltip>
-        <TooltipTrigger
-          className={disbaled ? "cursor-not-allowed" : "cursor-pointer"}>
-
+        <TooltipTrigger asChild>
           <Button
             size={"icon"}
             disabled={disbaled}
             variant={buttonVariant}
-            className={buttonClassName}
+            className={`${buttonClassName} ${disbaled ? "cursor-not-allowed" : "cursor-pointer"}`}
             onClick={onClick}>
 
             {loading ?

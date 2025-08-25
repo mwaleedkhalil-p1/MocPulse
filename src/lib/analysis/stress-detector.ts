@@ -87,6 +87,13 @@ export class StressDetector {
    */
   async startCalibration(): Promise<boolean> {
     if (!this.video || this.isCalibrating) {
+      console.warn('Cannot start calibration: video not available or already calibrating');
+      return false;
+    }
+
+    // Check if video is ready
+    if (this.video.readyState < 2) {
+      console.warn('Video not ready for calibration');
       return false;
     }
 
@@ -96,13 +103,34 @@ export class StressDetector {
       
       console.log('Starting stress detection baseline calibration...');
       
+      // Test face detection first
+      try {
+        const testDetection = await faceapi
+          .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+          .withFaceExpressions();
+        
+        if (!testDetection) {
+          console.warn('No face detected in initial test - please ensure face is visible');
+          this.isCalibrating = false;
+          return false;
+        }
+        
+        console.log('Face detection test successful, starting calibration');
+      } catch (testError) {
+        console.error('Face detection test failed:', testError);
+        this.isCalibrating = false;
+        return false;
+      }
+      
       // Collect samples for calibration
       const calibrationPromise = new Promise<boolean>((resolve) => {
         const startTime = Date.now();
         const sampleInterval = this.CALIBRATION_DURATION / this.CALIBRATION_SAMPLES_TARGET;
+        let samplesCollected = 0;
         
         const collectSample = async () => {
           if (!this.isCalibrating || !this.video) {
+            console.log('Calibration stopped or video unavailable');
             resolve(false);
             return;
           }
@@ -111,19 +139,24 @@ export class StressDetector {
           
           if (elapsed >= this.CALIBRATION_DURATION) {
             // Calibration complete
+            console.log(`Calibration completed. Collected ${samplesCollected} samples out of ${this.CALIBRATION_SAMPLES_TARGET} target`);
             this.finishCalibration();
-            resolve(true);
+            resolve(samplesCollected > 0);
             return;
           }
 
           // Collect sample
           try {
             const detection = await faceapi
-              .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions())
+              .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
               .withFaceExpressions();
 
             if (detection && detection.expressions) {
               this.calibrationSamples.push(detection.expressions);
+              samplesCollected++;
+              console.log(`Calibration sample ${samplesCollected}/${this.CALIBRATION_SAMPLES_TARGET} collected`);
+            } else {
+              console.warn('No face detected in calibration sample');
             }
           } catch (error) {
             console.warn('Error during calibration sample collection:', error);
@@ -149,9 +182,13 @@ export class StressDetector {
    */
   private finishCalibration(): void {
     if (this.calibrationSamples.length === 0) {
-      console.warn('No calibration samples collected');
+      console.warn('No calibration samples collected - calibration failed');
       this.isCalibrating = false;
       return;
+    }
+
+    if (this.calibrationSamples.length < 3) {
+      console.warn(`Only ${this.calibrationSamples.length} calibration samples collected (minimum 3 recommended)`);
     }
 
     // Calculate average expressions for baseline
@@ -194,6 +231,7 @@ export class StressDetector {
 
     this.isCalibrating = false;
     console.log(`Stress detection baseline established with ${sampleCount} samples`);
+    console.log('Baseline averages:', avgExpressions);
   }
 
   /**
@@ -244,10 +282,11 @@ export class StressDetector {
 
     try {
       const detection = await faceapi
-        .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
         .withFaceExpressions();
 
       if (!detection || !detection.expressions) {
+        // console.warn('No face detected during stress detection');
         return;
       }
 
