@@ -534,7 +534,6 @@ export class StressAnalyzer {
   private stressDetector: StressDetector;
   private isAnalyzing: boolean = false;
   private stressTimeline: Array<{stress: boolean;confidence: number;timestamp: number;}> = [];
-  private video: HTMLVideoElement | null = null;
 
   constructor() {
     this.stressDetector = new StressDetector();
@@ -542,8 +541,6 @@ export class StressAnalyzer {
 
   async start(video: HTMLVideoElement) {
     try {
-      this.video = video;
-      
       // Initialize the stress detector
       const initialized = await this.stressDetector.initialize(video);
       if (!initialized) {
@@ -604,7 +601,6 @@ export class StressAnalyzer {
 
   getAnalysis(): StressAnalysis {
     const currentStress = this.stressDetector.getCurrentStressLevel();
-    const stats = this.stressDetector.getDetectionStats();
     
     // Calculate overall stress level
     const stressEvents = this.stressTimeline.filter(entry => entry.stress).length;

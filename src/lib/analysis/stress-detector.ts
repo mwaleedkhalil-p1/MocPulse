@@ -1,11 +1,22 @@
 import * as faceapi from 'face-api.js';
 
+// Define our own expression type for baseline calculations
+type ExpressionValues = {
+  neutral: number;
+  happy: number;
+  sad: number;
+  angry: number;
+  fearful: number;
+  disgusted: number;
+  surprised: number;
+};
+
 export interface StressDetectionResult {
   stress: boolean;
   confidence: number;
   features: string[];
   rawData?: {
-    baseline: faceapi.FaceExpressions | null;
+    baseline: ExpressionValues | null;
     current: faceapi.FaceExpressions | null;
     deviations: Record<string, number>;
   };
@@ -13,7 +24,7 @@ export interface StressDetectionResult {
 
 export interface BaselineCalibration {
   expressions: faceapi.FaceExpressions[];
-  averageExpressions: faceapi.FaceExpressions;
+  averageExpressions: ExpressionValues;
   timestamp: number;
 }
 
@@ -144,7 +155,7 @@ export class StressDetector {
     }
 
     // Calculate average expressions for baseline
-    const avgExpressions: faceapi.FaceExpressions = {
+    const avgExpressions: ExpressionValues = {
       neutral: 0,
       happy: 0,
       sad: 0,
@@ -156,17 +167,24 @@ export class StressDetector {
 
     // Sum all expressions
     this.calibrationSamples.forEach(expressions => {
-      Object.keys(avgExpressions).forEach(key => {
-        avgExpressions[key as keyof faceapi.FaceExpressions] += 
-          expressions[key as keyof faceapi.FaceExpressions];
-      });
+      avgExpressions.neutral += expressions.neutral;
+      avgExpressions.happy += expressions.happy;
+      avgExpressions.sad += expressions.sad;
+      avgExpressions.angry += expressions.angry;
+      avgExpressions.fearful += expressions.fearful;
+      avgExpressions.disgusted += expressions.disgusted;
+      avgExpressions.surprised += expressions.surprised;
     });
 
     // Calculate averages
     const sampleCount = this.calibrationSamples.length;
-    Object.keys(avgExpressions).forEach(key => {
-      avgExpressions[key as keyof faceapi.FaceExpressions] /= sampleCount;
-    });
+    avgExpressions.neutral /= sampleCount;
+    avgExpressions.happy /= sampleCount;
+    avgExpressions.sad /= sampleCount;
+    avgExpressions.angry /= sampleCount;
+    avgExpressions.fearful /= sampleCount;
+    avgExpressions.disgusted /= sampleCount;
+    avgExpressions.surprised /= sampleCount;
 
     this.baseline = {
       expressions: [...this.calibrationSamples],
@@ -266,8 +284,9 @@ export class StressDetector {
 
     // Calculate deviations for stress-related expressions
     Object.entries(this.STRESS_EXPRESSIONS).forEach(([expression, weight]) => {
-      const currentValue = currentExpressions[expression as keyof faceapi.FaceExpressions];
-      const baselineValue = baseline[expression as keyof faceapi.FaceExpressions];
+      const expressionKey = expression as keyof ExpressionValues;
+      const currentValue = currentExpressions[expressionKey];
+      const baselineValue = baseline[expressionKey];
       const deviation = currentValue - baselineValue;
       
       deviations[expression] = deviation;

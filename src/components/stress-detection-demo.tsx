@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { StressDetection } from './stress-detection';
 import { Play, Square, Video, VideoOff } from 'lucide-react';
 import { TooltipButton } from './tooltip-button';
