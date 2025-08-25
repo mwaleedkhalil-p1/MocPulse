@@ -7,6 +7,7 @@ export interface StressDetectionState {
   isDetecting: boolean;
   calibrationProgress: number;
   currentStress: StressDetectionResult;
+  instantStress: StressDetectionResult; // For immediate feedback
   error: string | null;
   stats: {
     totalDetections: number;
@@ -31,6 +32,11 @@ const initialState: StressDetectionState = {
   isDetecting: false,
   calibrationProgress: 0,
   currentStress: {
+    stress: false,
+    confidence: 0,
+    features: []
+  },
+  instantStress: {
     stress: false,
     confidence: 0,
     features: []
@@ -177,15 +183,17 @@ export const useStressDetection = (): [StressDetectionState, StressDetectionCont
       updateIntervalRef.current = window.setInterval(() => {
         if (detectorRef.current) {
           const currentStress = detectorRef.current.getCurrentStressLevel();
+          const instantStress = detectorRef.current.getInstantStressLevel();
           const stats = detectorRef.current.getDetectionStats();
           
           setState(prev => ({
             ...prev,
             currentStress,
+            instantStress,
             stats
           }));
         }
-      }, 500); // Update UI every 500ms
+      }, 150); // Update UI every 150ms for real-time responsiveness
 
       return () => {
         if (updateIntervalRef.current) {

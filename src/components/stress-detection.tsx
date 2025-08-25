@@ -45,7 +45,7 @@ export const StressDetection: React.FC<StressDetectionProps> = ({
     }
   }, [isRecording, state.isInitialized, state.calibrationProgress, state.isDetecting, controls]);
 
-  // Notify parent component of stress changes
+  // Notify parent component of stress changes (use smoothed for callbacks)
   useEffect(() => {
     if (onStressDetected && state.isDetecting) {
       onStressDetected(
@@ -55,6 +55,9 @@ export const StressDetection: React.FC<StressDetectionProps> = ({
       );
     }
   }, [state.currentStress, state.isDetecting, onStressDetected]);
+
+  // Use instant detection for visual feedback
+  const displayStress = state.isDetecting ? state.instantStress : state.currentStress;
 
   const handleStartCalibration = async () => {
     await controls.startCalibration();
@@ -155,16 +158,16 @@ export const StressDetection: React.FC<StressDetectionProps> = ({
       {/* Detection Status */}
       {state.calibrationProgress >= 1 && (
         <div className={cn(
-          "p-3 border rounded-lg transition-all duration-300",
-          state.currentStress.stress 
-            ? getStressLevelBg(state.currentStress.confidence)
+          "p-3 border rounded-lg transition-all duration-150",
+          displayStress.stress 
+            ? getStressLevelBg(displayStress.confidence)
             : "bg-green-50 border-green-200"
         )}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               {state.isDetecting ? (
-                state.currentStress.stress ? (
-                  <AlertTriangle className={cn("w-4 h-4", getStressLevelColor(state.currentStress.confidence))} />
+                displayStress.stress ? (
+                  <AlertTriangle className={cn("w-4 h-4", getStressLevelColor(displayStress.confidence))} />
                 ) : (
                   <CheckCircle className="w-4 h-4 text-green-600" />
                 )
@@ -174,29 +177,29 @@ export const StressDetection: React.FC<StressDetectionProps> = ({
               
               <span className={cn(
                 "text-sm font-medium",
-                state.currentStress.stress 
-                  ? getStressLevelColor(state.currentStress.confidence)
+                displayStress.stress 
+                  ? getStressLevelColor(displayStress.confidence)
                   : "text-green-700"
               )}>
                 {state.isDetecting ? (
-                  state.currentStress.stress ? 'Stress Detected' : 'Relaxed'
+                  displayStress.stress ? 'Stress Detected' : 'Relaxed'
                 ) : 'Ready'}
               </span>
             </div>
             
             {state.isDetecting && (
               <span className="text-xs text-gray-600">
-                {Math.round(state.currentStress.confidence * 100)}% confidence
+                {Math.round(displayStress.confidence * 100)}% confidence
               </span>
             )}
           </div>
 
           {/* Stress Features */}
-          {state.isDetecting && state.currentStress.features.length > 0 && (
+          {state.isDetecting && displayStress.features.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-gray-600">Detected indicators:</p>
               <div className="flex flex-wrap gap-1">
-                {state.currentStress.features.map((feature, index) => (
+                {displayStress.features.map((feature, index) => (
                   <span 
                     key={index}
                     className="px-2 py-1 text-xs bg-white rounded-full border"

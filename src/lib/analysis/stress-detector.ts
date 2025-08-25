@@ -40,10 +40,10 @@ export class StressDetector {
   // Configuration
   private readonly CALIBRATION_DURATION = 5000; // 5 seconds
   private readonly CALIBRATION_SAMPLES_TARGET = 15; // ~3 samples per second
-  private readonly STRESS_THRESHOLD = 0.25; // Minimum deviation to consider stress
-  private readonly CONFIDENCE_THRESHOLD = 0.6; // Minimum confidence for stress detection
-  private readonly SMOOTHING_WINDOW = 5; // Number of frames for temporal smoothing
-  private readonly DETECTION_INTERVAL = 333; // ~3 FPS for detection
+  private readonly STRESS_THRESHOLD = 0.15; // Lower threshold for more sensitivity
+  private readonly CONFIDENCE_THRESHOLD = 0.4; // Lower threshold for quicker detection
+  private readonly SMOOTHING_WINDOW = 3; // Reduced window for faster response
+  private readonly DETECTION_INTERVAL = 100; // ~10 FPS for real-time detection
 
   // Stress-related expressions (higher values indicate stress)
   private readonly STRESS_EXPRESSIONS = {
@@ -282,7 +282,7 @@ export class StressDetector {
 
     try {
       const detection = await faceapi
-        .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+        .detectSingleFace(this.video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
         .withFaceExpressions();
 
       if (!detection || !detection.expressions) {
@@ -373,6 +373,22 @@ export class StressDetector {
   }
 
   /**
+   * Get instant stress detection result (no smoothing) for immediate feedback
+   */
+  getInstantStressLevel(): StressDetectionResult {
+    if (this.detectionHistory.length === 0) {
+      return {
+        stress: false,
+        confidence: 0,
+        features: []
+      };
+    }
+
+    // Return the most recent detection result
+    return this.detectionHistory[this.detectionHistory.length - 1];
+  }
+
+  /**
    * Get current stress detection result with temporal smoothing
    */
   getCurrentStressLevel(): StressDetectionResult {
@@ -384,15 +400,31 @@ export class StressDetector {
       };
     }
 
-    // Apply temporal smoothing over recent frames
+    // For real-time responsiveness, prioritize recent detections
     const recentResults = this.detectionHistory.slice(-this.SMOOTHING_WINDOW);
     
-    // Calculate smoothed confidence
-    const avgConfidence = recentResults.reduce((sum, result) => sum + result.confidence, 0) / recentResults.length;
+    // Use weighted average giving more weight to recent detections
+    let weightedConfidence = 0;
+    let totalWeight = 0;
     
-    // Stress is detected if majority of recent frames indicate stress
+    recentResults.forEach((result, index) => {
+      const weight = index + 1; // More recent = higher weight
+      weightedConfidence += result.confidence * weight;
+      totalWeight += weight;
+    });
+    
+    const avgConfidence = totalWeight > 0 ? weightedConfidence / totalWeight : 0;
+    
+    // For immediate response, also check the most recent detection
+    const mostRecent = recentResults[recentResults.length - 1];
+    const hasRecentStress = mostRecent && mostRecent.stress && mostRecent.confidence > 0.5;
+    
+    // Stress is detected if:
+    // 1. Most recent detection shows high confidence stress, OR
+    // 2. Majority of recent frames indicate stress
     const stressCount = recentResults.filter(result => result.stress).length;
-    const smoothedStress = stressCount > (this.SMOOTHING_WINDOW / 2);
+    const majorityStress = stressCount > (this.SMOOTHING_WINDOW / 2);
+    const smoothedStress = hasRecentStress || majorityStress;
     
     // Combine all features from recent frames
     const allFeatures = recentResults.flatMap(result => result.features);
