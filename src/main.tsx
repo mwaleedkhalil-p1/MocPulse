@@ -6,10 +6,10 @@ import App from "./App.tsx";
 import { ToasterProvider } from "./provider/toast-provider.tsx";
 import { setupAnalysisModels } from "./lib/analysis/init";
 
-// Initialize analysis models
+
 setupAnalysisModels();
 
-// Import your Publishable Key
+
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {

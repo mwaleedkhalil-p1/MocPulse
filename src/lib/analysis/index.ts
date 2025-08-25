@@ -1,17 +1,18 @@
 import * as faceapi from 'face-api.js';
 import { Camera } from '@mediapipe/camera_utils';
 import { Pose, Results } from '@mediapipe/pose';
-import { EmotionAnalysis, GestureAnalysis, ToneAnalysis } from '@/types';
+import { EmotionAnalysis, GestureAnalysis, ToneAnalysis, StressAnalysis } from '@/types';
+import { StressDetector, StressDetectionResult } from './stress-detector';
 
-// Initialize face-api models
+
 export const initFaceModels = async () => {
   try {
     await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-      faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('/models')
-    ]);
+    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+    faceapi.nets.faceExpressionNet.loadFromUri('/models')]
+    );
     console.log('Face-api models loaded successfully');
     return true;
   } catch (error) {
@@ -20,7 +21,7 @@ export const initFaceModels = async () => {
   }
 };
 
-// Tone Analysis using Web Audio API
+
 export class ToneAnalyzer {
   private audioContext: AudioContext | null = null;
   private analyzer: AnalyserNode | null = null;
@@ -31,7 +32,7 @@ export class ToneAnalyzer {
   private pitchValues: number[] = [];
   private wordCount: number = 0;
   private startTime: number = 0;
-  private confidenceScore: number = 50; // Default middle value
+  private confidenceScore: number = 50;
 
   constructor() {
     this.startTime = Date.now();
@@ -42,17 +43,17 @@ export class ToneAnalyzer {
       this.audioContext = new AudioContext();
       this.analyzer = this.audioContext.createAnalyser();
       this.analyzer.fftSize = 2048;
-      
+
       this.microphone = this.audioContext.createMediaStreamSource(stream);
       this.microphone.connect(this.analyzer);
-      
+
       const bufferLength = this.analyzer.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
-      
+
       this.isAnalyzing = true;
       this.startTime = Date.now();
       this.analyze();
-      
+
       return true;
     } catch (error) {
       console.error('Error starting tone analysis:', error);
@@ -71,13 +72,13 @@ export class ToneAnalyzer {
     this.dataArray = null;
   }
 
-  // Process speech for word count (simplified)
+
   processSpeech(text: string) {
     const words = text.trim().split(/\s+/);
     this.wordCount = words.length;
   }
 
-  // Update confidence based on voice patterns
+
   updateConfidence(value: number) {
     this.confidenceScore = Math.max(0, Math.min(100, this.confidenceScore + value));
   }
@@ -85,55 +86,55 @@ export class ToneAnalyzer {
   private analyze() {
     if (!this.isAnalyzing || !this.analyzer || !this.dataArray) return;
 
-    // Get frequency data
+
     this.analyzer.getByteFrequencyData(this.dataArray);
-    
-    // Calculate average frequency (simplified pitch detection)
+
+
     let sum = 0;
     for (let i = 0; i < this.dataArray.length; i++) {
       sum += this.dataArray[i];
     }
     const averageFrequency = sum / this.dataArray.length;
-    
-    // Store pitch value (normalized to 0-100)
-    const normalizedPitch = Math.min(100, (averageFrequency / 255) * 100);
+
+
+    const normalizedPitch = Math.min(100, averageFrequency / 255 * 100);
     this.pitchValues.push(normalizedPitch);
-    
-    // Limit stored values to prevent memory issues
+
+
     if (this.pitchValues.length > 100) {
       this.pitchValues.shift();
     }
-    
-    // Continue analyzing
+
+
     requestAnimationFrame(() => this.analyze());
   }
 
   getAnalysis(): ToneAnalysis {
-    // Calculate average pitch
-    const avgPitch = this.pitchValues.length > 0 
-      ? this.pitchValues.reduce((a, b) => a + b, 0) / this.pitchValues.length 
-      : 50;
-    
-    // Calculate speaking speed (words per minute)
+
+    const avgPitch = this.pitchValues.length > 0 ?
+    this.pitchValues.reduce((a, b) => a + b, 0) / this.pitchValues.length :
+    50;
+
+
     const durationMinutes = (Date.now() - this.startTime) / 60000;
     const speed = durationMinutes > 0 ? Math.round(this.wordCount / durationMinutes) : 0;
-    
-    // Determine confidence level based on score
+
+
     let confidence: "confident" | "hesitant" | "authoritative" | "nervous" | "enthusiastic" = "hesitant";
-    if (this.confidenceScore > 80) confidence = "confident";
-    else if (this.confidenceScore > 60) confidence = "enthusiastic";
-    else if (this.confidenceScore > 40) confidence = "authoritative";
-    else if (this.confidenceScore > 20) confidence = "hesitant";
-    else confidence = "nervous";
-    
-    // Generate feedback based on analysis
+    if (this.confidenceScore > 80) confidence = "confident";else
+    if (this.confidenceScore > 60) confidence = "enthusiastic";else
+    if (this.confidenceScore > 40) confidence = "authoritative";else
+    if (this.confidenceScore > 20) confidence = "hesitant";else
+    confidence = "nervous";
+
+
     let feedback = "";
-    if (avgPitch > 75) feedback = "Try lowering your pitch for a more authoritative tone.";
-    else if (avgPitch < 25) feedback = "Try varying your pitch more to sound more engaging.";
-    else if (speed > 160) feedback = "Consider slowing down to improve clarity.";
-    else if (speed < 100) feedback = "Try speaking a bit faster to maintain engagement.";
-    else feedback = "Your tone is well-balanced. Maintain this level of delivery.";
-    
+    if (avgPitch > 75) feedback = "Try lowering your pitch for a more authoritative tone.";else
+    if (avgPitch < 25) feedback = "Try varying your pitch more to sound more engaging.";else
+    if (speed > 160) feedback = "Consider slowing down to improve clarity.";else
+    if (speed < 100) feedback = "Try speaking a bit faster to maintain engagement.";else
+    feedback = "Your tone is well-balanced. Maintain this level of delivery.";
+
     return {
       pitch: Math.round(avgPitch),
       speed,
@@ -143,10 +144,10 @@ export class ToneAnalyzer {
   }
 }
 
-// Face Expression Analysis using face-api.js
+
 export class EmotionAnalyzer {
   private isAnalyzing: boolean = false;
-  private emotionTimeline: Array<{emotion: string, timestamp: number}> = [];
+  private emotionTimeline: Array<{emotion: string;timestamp: number;}> = [];
   private detectionInterval: number | null = null;
   private video: HTMLVideoElement | null = null;
 
@@ -154,12 +155,12 @@ export class EmotionAnalyzer {
     try {
       this.video = video;
       this.isAnalyzing = true;
-      
-      // Start detection loop
+
+
       this.detectionInterval = window.setInterval(() => {
         this.detectEmotions();
-      }, 1000) as unknown as number; // Check every second
-      
+      }, 1000) as unknown as number;
+
       return true;
     } catch (error) {
       console.error('Error starting emotion analysis:', error);
@@ -177,19 +178,19 @@ export class EmotionAnalyzer {
 
   private async detectEmotions() {
     if (!this.isAnalyzing || !this.video) return;
-    
+
     try {
-      const detections = await faceapi.detectAllFaces(this.video, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceExpressions();
-      
+      const detections = await faceapi.detectAllFaces(this.video, new faceapi.TinyFaceDetectorOptions()).
+      withFaceLandmarks().
+      withFaceExpressions();
+
       if (detections && detections.length > 0) {
         const expressions = detections[0].expressions;
-        
-        // Find the dominant emotion
+
+
         let dominantEmotion = 'neutral';
         let maxScore = expressions.neutral;
-        
+
         if (expressions.happy > maxScore) {
           dominantEmotion = 'happiness';
           maxScore = expressions.happy;
@@ -210,15 +211,15 @@ export class EmotionAnalyzer {
           dominantEmotion = 'frustration';
           maxScore = expressions.fearful;
         }
-        
-        // Add to timeline
+
+
         this.emotionTimeline.push({
           emotion: dominantEmotion,
           timestamp: Date.now()
         });
-        
-        // Limit timeline length
-        if (this.emotionTimeline.length > 60) { // Keep last minute
+
+
+        if (this.emotionTimeline.length > 60) {
           this.emotionTimeline.shift();
         }
       }
@@ -228,12 +229,12 @@ export class EmotionAnalyzer {
   }
 
   getAnalysis(): EmotionAnalysis {
-    // Default values
+
     let primary: "happiness" | "sadness" | "anger" | "surprise" | "frustration" | "neutral" = "neutral";
     let intensity = 50;
     let feedback = "Maintain consistent emotional engagement throughout your answer.";
 
-    // Calculate dominant emotion
+
     if (this.emotionTimeline.length > 0) {
       const emotionCounts: Record<string, number> = {
         happiness: 0,
@@ -244,13 +245,13 @@ export class EmotionAnalyzer {
         neutral: 0
       };
 
-      this.emotionTimeline.forEach(item => {
+      this.emotionTimeline.forEach((item) => {
         if (emotionCounts[item.emotion] !== undefined) {
           emotionCounts[item.emotion]++;
         }
       });
 
-      // Find most frequent emotion
+
       let maxCount = 0;
       let dominantEmotion = "neutral";
       Object.entries(emotionCounts).forEach(([emotion, count]) => {
@@ -262,10 +263,10 @@ export class EmotionAnalyzer {
 
       primary = dominantEmotion as "happiness" | "sadness" | "anger" | "surprise" | "frustration" | "neutral";
 
-      // Calculate intensity (percentage of dominant emotion)
-      intensity = Math.round((maxCount / this.emotionTimeline.length) * 100);
 
-      // Generate feedback based on analysis
+      intensity = Math.round(maxCount / this.emotionTimeline.length * 100);
+
+
       if (dominantEmotion === "neutral" && intensity > 70) {
         feedback = "Try to show more emotional engagement to connect better with your audience.";
       } else if (dominantEmotion === "happiness" && intensity > 70) {
@@ -276,7 +277,7 @@ export class EmotionAnalyzer {
         feedback = "Your emotional expressiveness is good. Continue to match emotions to content.";
       }
     }
-    
+
     return {
       primary,
       intensity,
@@ -286,7 +287,7 @@ export class EmotionAnalyzer {
   }
 }
 
-// Gesture Analysis using MediaPipe
+
 export class GestureAnalyzer {
   private pose: Pose | null = null;
   private camera: Camera | null = null;
@@ -298,38 +299,38 @@ export class GestureAnalyzer {
 
   async start(video: HTMLVideoElement) {
     try {
-      // Initialize MediaPipe Pose
+
       this.pose = new Pose({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
         }
       });
-      
+
       this.pose.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
       });
-      
+
       this.pose.onResults((results) => {
         this.processResults(results);
       });
-      
-      // Start camera
+
+
       this.camera = new Camera(video, {
         onFrame: async () => {
           if (this.pose && this.isAnalyzing) {
-            await this.pose.send({image: video});
+            await this.pose.send({ image: video });
           }
         },
         width: 640,
         height: 480
       });
-      
+
       this.isAnalyzing = true;
       await this.camera.start();
-      
+
       return true;
     } catch (error) {
       console.error('Error starting gesture analysis:', error);
@@ -348,35 +349,35 @@ export class GestureAnalyzer {
 
   private processResults(results: Results) {
     if (!results.poseLandmarks) return;
-    
-    // Analyze posture
+
+
     this.analyzePosture(results.poseLandmarks);
-    
-    // Analyze hand movements
+
+
     this.analyzeHandMovements(results.poseLandmarks);
-    
-    // Analyze facial engagement
+
+
     this.analyzeFacialEngagement(results.poseLandmarks);
-    
-    // Analyze body language
+
+
     this.analyzeBodyLanguage(results.poseLandmarks);
   }
 
   private analyzePosture(landmarks: any[]) {
-    // Simplified posture analysis based on shoulder alignment
+
     const leftShoulder = landmarks[11];
     const rightShoulder = landmarks[12];
-    
+
     if (leftShoulder && rightShoulder) {
       const shoulderDiff = Math.abs(leftShoulder.y - rightShoulder.y);
-      
+
       if (shoulderDiff < 0.05) {
         this.postureSamples.push('good');
       } else {
         this.postureSamples.push('poor');
       }
-      
-      // Limit sample size
+
+
       if (this.postureSamples.length > 30) {
         this.postureSamples.shift();
       }
@@ -384,26 +385,26 @@ export class GestureAnalyzer {
   }
 
   private analyzeHandMovements(landmarks: any[]) {
-    // Simplified hand movement analysis
+
     const leftWrist = landmarks[15];
     const rightWrist = landmarks[16];
     const leftElbow = landmarks[13];
     const rightElbow = landmarks[14];
-    
+
     if (leftWrist && rightWrist && leftElbow && rightElbow) {
-      // Calculate movement range
+
       const leftMovement = Math.sqrt(
-        Math.pow(leftWrist.x - leftElbow.x, 2) + 
+        Math.pow(leftWrist.x - leftElbow.x, 2) +
         Math.pow(leftWrist.y - leftElbow.y, 2)
       );
-      
+
       const rightMovement = Math.sqrt(
-        Math.pow(rightWrist.x - rightElbow.x, 2) + 
+        Math.pow(rightWrist.x - rightElbow.x, 2) +
         Math.pow(rightWrist.y - rightElbow.y, 2)
       );
-      
+
       const totalMovement = leftMovement + rightMovement;
-      
+
       if (totalMovement < 0.2) {
         this.handMovementSamples.push('minimal');
       } else if (totalMovement < 0.5) {
@@ -411,8 +412,8 @@ export class GestureAnalyzer {
       } else {
         this.handMovementSamples.push('excessive');
       }
-      
-      // Limit sample size
+
+
       if (this.handMovementSamples.length > 30) {
         this.handMovementSamples.shift();
       }
@@ -420,14 +421,14 @@ export class GestureAnalyzer {
   }
 
   private analyzeFacialEngagement(landmarks: any[]) {
-    // Simplified facial engagement based on face visibility
+
     const nose = landmarks[0];
     const leftEye = landmarks[2];
     const rightEye = landmarks[5];
-    
+
     if (nose && leftEye && rightEye) {
       const visibility = (nose.visibility + leftEye.visibility + rightEye.visibility) / 3;
-      
+
       if (visibility > 0.8) {
         this.facialEngagementSamples.push('high');
       } else if (visibility > 0.5) {
@@ -435,8 +436,8 @@ export class GestureAnalyzer {
       } else {
         this.facialEngagementSamples.push('low');
       }
-      
-      // Limit sample size
+
+
       if (this.facialEngagementSamples.length > 30) {
         this.facialEngagementSamples.shift();
       }
@@ -444,32 +445,32 @@ export class GestureAnalyzer {
   }
 
   private analyzeBodyLanguage(landmarks: any[]) {
-    // Simplified body language analysis based on arm positions
+
     const leftShoulder = landmarks[11];
     const rightShoulder = landmarks[12];
     const leftElbow = landmarks[13];
     const rightElbow = landmarks[14];
-    
+
     if (leftShoulder && rightShoulder && leftElbow && rightElbow) {
-      // Check if arms are crossed or open
+
       const leftArmAngle = Math.atan2(
         leftElbow.y - leftShoulder.y,
         leftElbow.x - leftShoulder.x
       );
-      
+
       const rightArmAngle = Math.atan2(
         rightElbow.y - rightShoulder.y,
         rightElbow.x - rightShoulder.x
       );
-      
-      // Simplified check for open vs closed posture
+
+
       if (leftArmAngle * rightArmAngle < 0) {
         this.bodyLanguageSamples.push('open');
       } else {
         this.bodyLanguageSamples.push('closed');
       }
-      
-      // Limit sample size
+
+
       if (this.bodyLanguageSamples.length > 30) {
         this.bodyLanguageSamples.shift();
       }
@@ -477,33 +478,33 @@ export class GestureAnalyzer {
   }
 
   getAnalysis(): GestureAnalysis {
-    // Calculate most frequent values
+
     const getMostFrequent = (samples: string[]) => {
       if (samples.length === 0) return 'neutral';
-      
+
       const counts: Record<string, number> = {};
       let maxCount = 0;
       let mostFrequent = 'neutral';
-      
-      samples.forEach(sample => {
+
+      samples.forEach((sample) => {
         counts[sample] = (counts[sample] || 0) + 1;
         if (counts[sample] > maxCount) {
           maxCount = counts[sample];
           mostFrequent = sample;
         }
       });
-      
+
       return mostFrequent;
     };
-    
+
     const posture = getMostFrequent(this.postureSamples) as "good" | "poor" | "neutral";
     const handMovements = getMostFrequent(this.handMovementSamples) as "minimal" | "moderate" | "excessive";
     const facialEngagement = getMostFrequent(this.facialEngagementSamples) as "high" | "low" | "moderate";
     const bodyLanguage = getMostFrequent(this.bodyLanguageSamples) as "open" | "closed" | "neutral";
-    
-    // Generate feedback
+
+
     let feedback = "";
-    
+
     if (posture === "poor") {
       feedback = "Try to maintain a straight posture with shoulders level.";
     } else if (handMovements === "minimal") {
@@ -517,7 +518,7 @@ export class GestureAnalyzer {
     } else {
       feedback = "Your body language is effective. Continue to match gestures with your message.";
     }
-    
+
     return {
       posture,
       handMovements,
@@ -528,31 +529,150 @@ export class GestureAnalyzer {
   }
 }
 
-// Main Analysis Manager
+
+export class StressAnalyzer {
+  private stressDetector: StressDetector;
+  private isAnalyzing: boolean = false;
+  private stressTimeline: Array<{stress: boolean;confidence: number;timestamp: number;}> = [];
+  private video: HTMLVideoElement | null = null;
+
+  constructor() {
+    this.stressDetector = new StressDetector();
+  }
+
+  async start(video: HTMLVideoElement) {
+    try {
+      this.video = video;
+      
+      // Initialize the stress detector
+      const initialized = await this.stressDetector.initialize(video);
+      if (!initialized) {
+        throw new Error('Failed to initialize stress detector');
+      }
+
+      // Start calibration automatically
+      const calibrated = await this.stressDetector.startCalibration();
+      if (!calibrated) {
+        throw new Error('Failed to calibrate stress detector');
+      }
+
+      // Start detection
+      const detectionStarted = this.stressDetector.startDetection();
+      if (!detectionStarted) {
+        throw new Error('Failed to start stress detection');
+      }
+
+      this.isAnalyzing = true;
+      this.startTimelineTracking();
+      
+      return true;
+    } catch (error) {
+      console.error('Error starting stress analysis:', error);
+      return false;
+    }
+  }
+
+  stop() {
+    this.isAnalyzing = false;
+    this.stressDetector.reset();
+  }
+
+  private startTimelineTracking() {
+    if (!this.isAnalyzing) return;
+
+    // Track stress levels every second
+    const trackingInterval = setInterval(() => {
+      if (!this.isAnalyzing) {
+        clearInterval(trackingInterval);
+        return;
+      }
+
+      const currentStress = this.stressDetector.getCurrentStressLevel();
+      this.stressTimeline.push({
+        stress: currentStress.stress,
+        confidence: currentStress.confidence,
+        timestamp: Date.now()
+      });
+
+      // Keep only last 5 minutes of data
+      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+      this.stressTimeline = this.stressTimeline.filter(
+        entry => entry.timestamp > fiveMinutesAgo
+      );
+    }, 1000);
+  }
+
+  getAnalysis(): StressAnalysis {
+    const currentStress = this.stressDetector.getCurrentStressLevel();
+    const stats = this.stressDetector.getDetectionStats();
+    
+    // Calculate overall stress level
+    const stressEvents = this.stressTimeline.filter(entry => entry.stress).length;
+    const totalEvents = this.stressTimeline.length;
+    const stressPercentage = totalEvents > 0 ? stressEvents / totalEvents : 0;
+    
+    // Generate feedback based on stress analysis
+    let feedback = "";
+    if (stressPercentage > 0.7) {
+      feedback = "High stress levels detected throughout the interview. Try deep breathing and relaxation techniques.";
+    } else if (stressPercentage > 0.4) {
+      feedback = "Moderate stress detected. Focus on staying calm and confident in your responses.";
+    } else if (stressPercentage > 0.2) {
+      feedback = "Some stress indicators observed. This is normal - try to maintain composure.";
+    } else {
+      feedback = "Excellent stress management! You maintained composure throughout the interview.";
+    }
+
+    return {
+      stress: currentStress.stress,
+      confidence: currentStress.confidence,
+      features: currentStress.features,
+      timeline: this.stressTimeline,
+      feedback
+    };
+  }
+
+  getCurrentStressLevel(): StressDetectionResult {
+    return this.stressDetector.getCurrentStressLevel();
+  }
+
+  isBaselineReady(): boolean {
+    return this.stressDetector.isBaselineReady();
+  }
+
+  isDetectionActive(): boolean {
+    return this.stressDetector.isDetectionActive();
+  }
+}
+
+
 export class AnalysisManager {
   private toneAnalyzer: ToneAnalyzer;
   private emotionAnalyzer: EmotionAnalyzer;
   private gestureAnalyzer: GestureAnalyzer;
+  private stressAnalyzer: StressAnalyzer;
   private isAnalyzing: boolean = false;
-  
+
   constructor() {
     this.toneAnalyzer = new ToneAnalyzer();
     this.emotionAnalyzer = new EmotionAnalyzer();
     this.gestureAnalyzer = new GestureAnalyzer();
+    this.stressAnalyzer = new StressAnalyzer();
   }
-  
+
   async start(videoElement: HTMLVideoElement, audioStream: MediaStream) {
     try {
-      // Initialize face-api models if not already loaded
+
       await initFaceModels();
-      
-      // Start analyzers
+
+
       await Promise.all([
-        this.toneAnalyzer.start(audioStream),
-        this.emotionAnalyzer.start(videoElement),
-        this.gestureAnalyzer.start(videoElement)
-      ]);
-      
+      this.toneAnalyzer.start(audioStream),
+      this.emotionAnalyzer.start(videoElement),
+      this.gestureAnalyzer.start(videoElement),
+      this.stressAnalyzer.start(videoElement)]
+      );
+
       this.isAnalyzing = true;
       return true;
     } catch (error) {
@@ -560,28 +680,33 @@ export class AnalysisManager {
       return false;
     }
   }
-  
+
   stop() {
     this.toneAnalyzer.stop();
     this.emotionAnalyzer.stop();
     this.gestureAnalyzer.stop();
+    this.stressAnalyzer.stop();
     this.isAnalyzing = false;
   }
-  
+
   updateSpeechText(text: string) {
-    // Update tone analyzer with speech text for word count
+
     this.toneAnalyzer.processSpeech(text);
   }
-  
+
   getAnalysisResults() {
     return {
       toneAnalysis: this.toneAnalyzer.getAnalysis(),
       emotionAnalysis: this.emotionAnalyzer.getAnalysis(),
-      gestureAnalysis: this.gestureAnalyzer.getAnalysis()
+      gestureAnalysis: this.gestureAnalyzer.getAnalysis(),
+      stressAnalysis: this.stressAnalyzer.getAnalysis()
     };
   }
-  
+
   isActive() {
     return this.isAnalyzing;
   }
 }
+
+// Export stress detection components
+export { StressDetector, type StressDetectionResult } from './stress-detector';

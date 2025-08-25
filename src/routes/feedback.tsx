@@ -7,8 +7,8 @@ import {
   getDoc,
   getDocs,
   query,
-  where,
-} from "firebase/firestore";
+  where } from
+"firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,14 +20,14 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  AccordionTrigger } from
+"@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { CircleCheck, Star } from "lucide-react";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 
 export const Feedback = () => {
-  const { interviewId } = useParams<{ interviewId: string }>();
+  const { interviewId } = useParams<{interviewId: string;}>();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [feedbacks, setFeedbacks] = useState<UserAnswer[]>([]);
@@ -49,7 +49,7 @@ export const Feedback = () => {
             if (interviewDoc.exists()) {
               setInterview({
                 id: interviewDoc.id,
-                ...interviewDoc.data(),
+                ...interviewDoc.data()
               } as Interview);
             }
           } catch (error) {
@@ -77,7 +77,7 @@ export const Feedback = () => {
         } catch (error) {
           console.log(error);
           toast("Error", {
-            description: "Something went wrong. Please try again later..",
+            description: "Something went wrong. Please try again later.."
           });
         } finally {
           setIsLoading(false);
@@ -88,7 +88,7 @@ export const Feedback = () => {
     }
   }, [interviewId, navigate, userId]);
 
-  //   calculate the ratings out of 10
+
 
   const overAllRating = useMemo(() => {
     if (feedbacks.length === 0) return "0.0";
@@ -111,19 +111,19 @@ export const Feedback = () => {
         <CustomBreadCrumb
           breadCrumbPage={"Feedback"}
           breadCrumpItems={[
-            { label: "Mock Interviews", link: "/generate" },
-            {
-              label: `${interview?.position}`,
-              link: `/generate/interview/${interview?.id}`,
-            },
-          ]}
-        />
+          { label: "Mock Interviews", link: "/generate" },
+          {
+            label: `${interview?.position}`,
+            link: `/generate/interview/${interview?.id}`
+          }]
+          } />
+
       </div>
 
       <Headings
         title="Congratulations !"
-        description="Your personalized feedback is now available. Dive in to see your strengths, areas for improvement, and tips to help you ace your next interview."
-      />
+        description="Your personalized feedback is now available. Dive in to see your strengths, areas for improvement, and tips to help you ace your next interview." />
+
 
       <p className="text-base text-muted-foreground">
         Your overall interview ratings :{" "}
@@ -136,23 +136,23 @@ export const Feedback = () => {
 
       <Headings title="Interview Feedback" isSubHeading />
 
-      {feedbacks && (
-        <Accordion type="single" collapsible className="space-y-6">
-          {feedbacks.map((feed) => (
-            <AccordionItem
-              key={feed.id}
-              value={feed.id}
-              className="border rounded-lg shadow-md"
-            >
+      {feedbacks &&
+      <Accordion type="single" collapsible className="space-y-6">
+          {feedbacks.map((feed) =>
+        <AccordionItem
+          key={feed.id}
+          value={feed.id}
+          className="border rounded-lg shadow-md">
+
               <AccordionTrigger
-                onClick={() => setActiveFeed(feed.id)}
-                className={cn(
-                  "px-5 py-3 flex items-center justify-between text-base rounded-t-lg transition-colors hover:no-underline",
-                  activeFeed === feed.id
-                    ? "bg-gradient-to-r from-purple-50 to-blue-50"
-                    : "hover:bg-gray-50"
-                )}
-              >
+            onClick={() => setActiveFeed(feed.id)}
+            className={cn(
+              "px-5 py-3 flex items-center justify-between text-base rounded-t-lg transition-colors hover:no-underline",
+              activeFeed === feed.id ?
+              "bg-gradient-to-r from-purple-50 to-blue-50" :
+              "hover:bg-gray-50"
+            )}>
+
                 <span>{feed.question}</span>
               </AccordionTrigger>
 
@@ -185,7 +185,7 @@ export const Feedback = () => {
                 </Card>
 
 
-                {/* Content Feedback */}
+                {}
                 <Card className="border-none space-y-3 p-4 bg-red-50 rounded-lg shadow-md">
                   <CardTitle className="flex items-center text-lg">
                     <CircleCheck className="mr-2 text-red-600" />
@@ -205,9 +205,9 @@ export const Feedback = () => {
                   </div>
                 </Card>
 
-                {/* Tone Analysis */}
-                {feed.toneAnalysis && (
-                  <Card className="border-none space-y-3 p-4 bg-blue-50 rounded-lg shadow-md">
+                {}
+                {feed.toneAnalysis &&
+            <Card className="border-none space-y-3 p-4 bg-blue-50 rounded-lg shadow-md">
                     <CardTitle className="flex items-center text-lg">
                       <CircleCheck className="mr-2 text-blue-600" />
                       Tone Analysis
@@ -230,11 +230,11 @@ export const Feedback = () => {
                       </CardDescription>
                     </div>
                   </Card>
-                )}
+            }
 
-                {/* Emotion Analysis */}
-                {feed.emotionAnalysis && (
-                  <Card className="border-none space-y-3 p-4 bg-purple-50 rounded-lg shadow-md">
+                {}
+                {feed.emotionAnalysis &&
+            <Card className="border-none space-y-3 p-4 bg-purple-50 rounded-lg shadow-md">
                     <CardTitle className="flex items-center text-lg">
                       <CircleCheck className="mr-2 text-purple-600" />
                       Emotion Analysis
@@ -253,11 +253,11 @@ export const Feedback = () => {
                       </CardDescription>
                     </div>
                   </Card>
-                )}
+            }
 
-                {/* Gesture Analysis */}
-                {feed.gestureAnalysis && (
-                  <Card className="border-none space-y-3 p-4 bg-green-50 rounded-lg shadow-md">
+                {}
+                {feed.gestureAnalysis &&
+            <Card className="border-none space-y-3 p-4 bg-green-50 rounded-lg shadow-md">
                     <CardTitle className="flex items-center text-lg">
                       <CircleCheck className="mr-2 text-green-600" />
                       Body Language Analysis
@@ -284,12 +284,12 @@ export const Feedback = () => {
                       </CardDescription>
                     </div>
                   </Card>
-                )}
+            }
               </AccordionContent>
             </AccordionItem>
-          ))}
+        )}
         </Accordion>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 };

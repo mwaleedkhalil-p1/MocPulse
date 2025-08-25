@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useAuth } from "@clerk/clerk-react";
 import {
   CircleStop,
@@ -8,8 +7,8 @@ import {
   Save,
   Video,
   VideoOff,
-  WebcamIcon,
-} from "lucide-react";
+  WebcamIcon } from
+"lucide-react";
 import { useEffect, useRef, useState } from "react";
 import useSpeechToText, { ResultType } from "react-hook-speech-to-text";
 import { useParams } from "react-router-dom";
@@ -17,6 +16,7 @@ import WebCam from "react-webcam";
 import { TooltipButton } from "./tooltip-button";
 import { toast } from "sonner";
 import { chatSession } from "@/scripts";
+import { handleAPIError, getErrorMessage } from "@/lib/api-utils";
 import { SaveModal } from "./save-modal";
 import {
   addDoc,
@@ -24,15 +24,16 @@ import {
   getDocs,
   query,
   serverTimestamp,
-  where,
-} from "firebase/firestore";
+  where } from
+"firebase/firestore";
 import { db } from "@/config/firebase.config";
-import { ToneAnalysis, EmotionAnalysis, GestureAnalysis } from "@/types";
+import { ToneAnalysis, EmotionAnalysis, GestureAnalysis, StressAnalysis } from "@/types";
 import { AnalysisManager } from "@/lib/analysis";
+import { StressDetection } from "./stress-detection";
 
 
 interface RecordAnswerProps {
-  question: { question: string; answer: string };
+  question: {question: string;answer: string;};
   isWebCam: boolean;
   setIsWebCam: (value: boolean) => void;
 }
@@ -43,22 +44,23 @@ interface AIResponse {
   toneAnalysis: ToneAnalysis;
   emotionAnalysis: EmotionAnalysis;
   gestureAnalysis: GestureAnalysis;
+  stressAnalysis: StressAnalysis;
 }
 
 export const RecordAnswer = ({
   question,
   isWebCam,
-  setIsWebCam,
+  setIsWebCam
 }: RecordAnswerProps) => {
   const {
     interimResult,
     isRecording,
     results,
     startSpeechToText,
-    stopSpeechToText,
+    stopSpeechToText
   } = useSpeechToText({
     continuous: true,
-    useLegacyResults: false,
+    useLegacyResults: false
   });
 
   const [userAnswer, setUserAnswer] = useState("");
@@ -69,8 +71,8 @@ export const RecordAnswer = ({
   const [recordAgainLoading, setRecordAgainLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [resultsStartIndex, setResultsStartIndex] = useState(0);
-  
-  // References
+
+
   const webcamRef = useRef<WebCam>(null);
   const analysisManagerRef = useRef<AnalysisManager | null>(null);
 
@@ -80,14 +82,14 @@ export const RecordAnswer = ({
   const recordUserAnswer = async () => {
     if (isRecording) {
       stopSpeechToText();
-      
-      // Stop analysis if it's running
+
+
       if (isAnalyzing && analysisManagerRef.current) {
         analysisManagerRef.current.stop();
         setIsAnalyzing(false);
       }
-      
-      // Check answer length and generate result
+
+
       if (userAnswer?.length >= 30) {
         const result = await generateResult(
           question.question,
@@ -97,26 +99,26 @@ export const RecordAnswer = ({
         setAiResult(result);
       } else {
         toast.error("Error", {
-          description: "Your answer should be more than 30 characters",
+          description: "Your answer should be more than 30 characters"
         });
       }
     } else {
-      setAiResult(null); // Reset AI result when starting new recording
-      setResultsStartIndex(results.length); // Reset start index for new recording
+      setAiResult(null);
+      setResultsStartIndex(results.length);
       startSpeechToText();
 
-      // Start real-time analysis if webcam is enabled
+
       if (isWebCam && webcamRef.current && webcamRef.current.video) {
         try {
-          // Check for microphone permission before attempting to get audio stream
+
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-          // Initialize analysis manager if needed
+
           if (!analysisManagerRef.current) {
             analysisManagerRef.current = new AnalysisManager();
           }
 
-          // Start analysis
+
           const success = await analysisManagerRef.current.start(
             webcamRef.current.video,
             stream
@@ -125,23 +127,23 @@ export const RecordAnswer = ({
           if (success) {
             setIsAnalyzing(true);
             toast.success("Analysis started", {
-              description: "Real-time analysis of tone, expression, and gestures is now active",
+              description: "Real-time analysis of tone, expression, and gestures is now active"
             });
           } else {
             toast.error("Analysis failed", {
-              description: "Could not start real-time analysis. Please try again.",
+              description: "Could not start real-time analysis. Please try again."
             });
           }
         } catch (error) {
           console.error("Error starting analysis:", error);
-          // Check if the error is related to permissions
+
           if (error instanceof DOMException && error.name === 'NotAllowedError') {
             toast.error("Microphone Permission Denied", {
-              description: "Please grant microphone access in your device settings to use this feature.",
+              description: "Please grant microphone access in your device settings to use this feature."
             });
           } else {
             toast.error("Analysis error", {
-              description: "Could not access media devices for analysis",
+              description: "Could not access media devices for analysis"
             });
           }
         }
@@ -150,13 +152,13 @@ export const RecordAnswer = ({
   };
 
   const cleanJsonResponse = (responseText: string) => {
-    // Step 1: Trim any surrounding whitespace
+
     let cleanText = responseText.trim();
 
-    // Step 2: Remove any occurrences of "json" or code block symbols (``` or `)
+
     cleanText = cleanText.replace(/(json|```|`)/g, "");
 
-    // Step 3: Parse the clean JSON text into an array of objects
+
     try {
       return JSON.parse(cleanText);
     } catch (error) {
@@ -165,17 +167,18 @@ export const RecordAnswer = ({
   };
 
   const generateResult = async (
-    qst: string,
-    qstAns: string,
-    userAns: string,
-  ): Promise<AIResponse> => {
+  qst: string,
+  qstAns: string,
+  userAns: string)
+  : Promise<AIResponse> => {
     setIsAiGenerating(true);
-    
-    // Get real-time analysis results if available
+
+
     let realTimeAnalysis: {
       toneAnalysis: ToneAnalysis;
       emotionAnalysis: EmotionAnalysis;
       gestureAnalysis: GestureAnalysis;
+      stressAnalysis: StressAnalysis;
     } = {
       toneAnalysis: {
         pitch: 50,
@@ -195,23 +198,31 @@ export const RecordAnswer = ({
         facialEngagement: "low",
         bodyLanguage: "neutral",
         feedback: "No gesture analysis available"
+      },
+      stressAnalysis: {
+        stress: false,
+        confidence: 0,
+        features: [],
+        timeline: [],
+        feedback: "No stress analysis available"
       }
     };
-    
-    // Get analysis results if analysis is active
+
+
     if (isAnalyzing && analysisManagerRef.current) {
-      // Update tone analyzer with the final speech text
+
       analysisManagerRef.current.updateSpeechText(userAns);
 
-      // Get the analysis results and merge with defaults
+
       const analysisResults = analysisManagerRef.current.getAnalysisResults();
       realTimeAnalysis = {
         toneAnalysis: analysisResults.toneAnalysis,
         emotionAnalysis: analysisResults.emotionAnalysis,
-        gestureAnalysis: analysisResults.gestureAnalysis
+        gestureAnalysis: analysisResults.gestureAnalysis,
+        stressAnalysis: analysisResults.stressAnalysis
       };
     }
-    
+
     const prompt = `
       Question: "${qst}"
       User Answer: "${userAns}"
@@ -228,31 +239,34 @@ export const RecordAnswer = ({
     `;
 
     try {
-      // Only use AI for content rating and feedback
+
       const aiResult = await chatSession.sendMessage(prompt);
       const parsedContentResult = cleanJsonResponse(aiResult.response.text());
-      
-      // Combine AI content analysis with real-time analysis
+
+
       const combinedResult: AIResponse = {
         ratings: parsedContentResult.ratings || 0,
         feedback: parsedContentResult.feedback || "Unable to generate feedback",
         toneAnalysis: realTimeAnalysis.toneAnalysis,
         emotionAnalysis: realTimeAnalysis.emotionAnalysis,
-        gestureAnalysis: realTimeAnalysis.gestureAnalysis
+        gestureAnalysis: realTimeAnalysis.gestureAnalysis,
+        stressAnalysis: realTimeAnalysis.stressAnalysis
       };
-      
+
       return combinedResult;
     } catch (error) {
       console.log(error);
-      toast("Error", {
-        description: "An error occurred while generating feedback.",
-      });
+
+
+      handleAPIError(error, "Feedback generation");
+
       return {
         ratings: 0,
-        feedback: "Unable to generate feedback",
+        feedback: `Unable to generate feedback: ${getErrorMessage(error)}`,
         toneAnalysis: realTimeAnalysis.toneAnalysis,
         emotionAnalysis: realTimeAnalysis.emotionAnalysis,
-        gestureAnalysis: realTimeAnalysis.gestureAnalysis
+        gestureAnalysis: realTimeAnalysis.gestureAnalysis,
+        stressAnalysis: realTimeAnalysis.stressAnalysis
       };
     } finally {
       setIsAiGenerating(false);
@@ -263,41 +277,41 @@ export const RecordAnswer = ({
     try {
       setRecordAgainLoading(true);
 
-      // Reset states first
+
       setUserAnswer("");
       setAiResult(null);
 
-      // Stop current recording if active and wait for it to complete
+
       if (isRecording) {
         stopSpeechToText();
-        // Give some time for the speech recognition to properly stop
-        await new Promise(resolve => setTimeout(resolve, 500));
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      // Stop analysis if it's running
+
       if (isAnalyzing && analysisManagerRef.current) {
         analysisManagerRef.current.stop();
         setIsAnalyzing(false);
       }
 
-      // Set the start index for new results (ignore previous results)
+
       setResultsStartIndex(results.length);
 
-      // Start new recording
+
       startSpeechToText();
 
-      // Start real-time analysis if webcam is enabled
+
       if (isWebCam && webcamRef.current && webcamRef.current.video) {
         try {
-          // Check for microphone permission before attempting to get audio stream
+
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-          // Initialize analysis manager if needed
+
           if (!analysisManagerRef.current) {
             analysisManagerRef.current = new AnalysisManager();
           }
 
-          // Start analysis
+
           const success = await analysisManagerRef.current.start(
             webcamRef.current.video,
             audioStream
@@ -306,35 +320,35 @@ export const RecordAnswer = ({
           if (success) {
             setIsAnalyzing(true);
             toast.success("Recording restarted", {
-              description: "New recording started with real-time analysis",
+              description: "New recording started with real-time analysis"
             });
           } else {
             toast.error("Analysis failed", {
-              description: "Could not start real-time analysis. Recording will continue without analysis.",
+              description: "Could not start real-time analysis. Recording will continue without analysis."
             });
           }
         } catch (error) {
           console.error("Error starting analysis:", error);
-          // Check if the error is related to permissions
+
           if (error instanceof DOMException && error.name === 'NotAllowedError') {
             toast.error("Microphone Permission Denied", {
-              description: "Please grant microphone access to use analysis features.",
+              description: "Please grant microphone access to use analysis features."
             });
           } else {
             toast.error("Analysis error", {
-              description: "Could not access media devices for analysis. Recording will continue without analysis.",
+              description: "Could not access media devices for analysis. Recording will continue without analysis."
             });
           }
         }
       } else {
         toast.success("Recording restarted", {
-          description: "New recording started",
+          description: "New recording started"
         });
       }
     } catch (error) {
       console.error("Error in recordNewAnswer:", error);
       toast.error("Error", {
-        description: "Failed to restart recording. Please try again.",
+        description: "Failed to restart recording. Please try again."
       });
     } finally {
       setRecordAgainLoading(false);
@@ -350,7 +364,7 @@ export const RecordAnswer = ({
 
     const currentQuestion = question.question;
     try {
-      // query the firbase to check if the user answer already exists for this question
+
 
       const userAnswerQuery = query(
         collection(db, "userAnswers"),
@@ -360,15 +374,15 @@ export const RecordAnswer = ({
 
       const querySnap = await getDocs(userAnswerQuery);
 
-      // if the user already answerd the question dont save it again
+
       if (!querySnap.empty) {
         console.log("Query Snap Size", querySnap.size);
         toast.info("Already Answered", {
-          description: "You have already answered this question",
+          description: "You have already answered this question"
         });
         return;
       } else {
-        // save the user answer
+
 
         await addDoc(collection(db, "userAnswers"), {
           mockIdRef: interviewId,
@@ -381,7 +395,8 @@ export const RecordAnswer = ({
           createdAt: serverTimestamp(),
           toneAnalysis: aiResult.toneAnalysis,
           emotionAnalysis: aiResult.emotionAnalysis,
-          gestureAnalysis: aiResult.gestureAnalysis
+          gestureAnalysis: aiResult.gestureAnalysis,
+          stressAnalysis: aiResult.stressAnalysis
         });
 
         toast("Saved", { description: "Your answer has been saved.." });
@@ -391,7 +406,7 @@ export const RecordAnswer = ({
       stopSpeechToText();
     } catch (error) {
       toast("Error", {
-        description: "An error occurred while generating feedback.",
+        description: "An error occurred while generating feedback."
       });
       console.log(error);
     } finally {
@@ -401,25 +416,25 @@ export const RecordAnswer = ({
   };
 
   useEffect(() => {
-    // Only use results from the current recording session (after resultsStartIndex)
+
     const currentSessionResults = results.slice(resultsStartIndex);
-    const combineTranscripts = currentSessionResults
-      .filter((result): result is ResultType => typeof result !== "string")
-      .map((result) => result.transcript)
-      .join(" ");
+    const combineTranscripts = currentSessionResults.
+    filter((result): result is ResultType => typeof result !== "string").
+    map((result) => result.transcript).
+    join(" ");
 
     setUserAnswer(combineTranscripts);
 
-    // Update tone analyzer with current speech text if analyzing
+
     if (isAnalyzing && analysisManagerRef.current && combineTranscripts) {
       analysisManagerRef.current.updateSpeechText(combineTranscripts);
     }
   }, [results, isAnalyzing, resultsStartIndex]);
-  
-  // Cleanup effect to stop analysis when component unmounts
+
+
   useEffect(() => {
     return () => {
-      // Stop analysis if it's running when component unmounts
+
       if (analysisManagerRef.current) {
         analysisManagerRef.current.stop();
       }
@@ -428,79 +443,88 @@ export const RecordAnswer = ({
 
   return (
     <div className="w-full flex flex-col items-center gap-8 mt-4">
-      {/* save modal */}
+      {}
       <SaveModal
         isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={saveUserAnswer}
-        loading={loading}
-      />
+        loading={loading} />
+
 
       <div className="w-full h-[400px] md:w-96 flex flex-col items-center justify-center border p-4 bg-gray-50 rounded-md">
-        {isWebCam ? (
-          <WebCam
-            ref={webcamRef}
-            onUserMedia={() => setIsWebCam(true)}
-            onUserMediaError={() => setIsWebCam(false)}
-            className="w-full h-full object-cover rounded-md"
-          />
-        ) : (
-          <WebcamIcon className="min-w-24 min-h-24 text-muted-foreground" />
-        )}
+        {isWebCam ?
+        <WebCam
+          ref={webcamRef}
+          onUserMedia={() => setIsWebCam(true)}
+          onUserMediaError={() => setIsWebCam(false)}
+          className="w-full h-full object-cover rounded-md" /> :
+
+
+        <WebcamIcon className="min-w-24 min-h-24 text-muted-foreground" />
+        }
       </div>
 
       <div className="flex itece justify-center gap-3">
         <TooltipButton
           content={isWebCam ? "Turn Off" : "Turn On"}
           icon={
-            isWebCam ? (
-              <VideoOff className="min-w-5 min-h-5" />
-            ) : (
-              <Video className="min-w-5 min-h-5" />
-            )
+          isWebCam ?
+          <VideoOff className="min-w-5 min-h-5" /> :
+
+          <Video className="min-w-5 min-h-5" />
+
           }
-          onClick={() => setIsWebCam(!isWebCam)}
-        />
+          onClick={() => setIsWebCam(!isWebCam)} />
+
 
         <TooltipButton
           content={isRecording ? "Stop Recording" : "Start Recording"}
           icon={
-            isRecording ? (
-              <CircleStop className="min-w-5 min-h-5" />
-            ) : (
-              <Mic className="min-w-5 min-h-5" />
-            )
+          isRecording ?
+          <CircleStop className="min-w-5 min-h-5" /> :
+
+          <Mic className="min-w-5 min-h-5" />
+
           }
-          onClick={recordUserAnswer}
-        />
+          onClick={recordUserAnswer} />
+
 
         <TooltipButton
           content="Record Again"
           icon={
-            recordAgainLoading ? (
-              <Loader className="min-w-5 min-h-5 animate-spin" />
-            ) : (
-              <RefreshCw className="min-w-5 min-h-5" />
-            )
+          recordAgainLoading ?
+          <Loader className="min-w-5 min-h-5 animate-spin" /> :
+
+          <RefreshCw className="min-w-5 min-h-5" />
+
           }
           onClick={recordNewAnswer}
           disbaled={recordAgainLoading}
-          loading={recordAgainLoading}
-        />
+          loading={recordAgainLoading} />
+
 
         <TooltipButton
           content="Save Result"
           icon={
-            isAiGenerating ? (
-              <Loader className="min-w-5 min-h-5 animate-spin" />
-            ) : (
-              <Save className="min-w-5 min-h-5" />
-            )
+          isAiGenerating ?
+          <Loader className="min-w-5 min-h-5 animate-spin" /> :
+
+          <Save className="min-w-5 min-h-5" />
+
           }
           onClick={() => setOpen(!open)}
-          disbaled={!aiResult}
-        />
+          disbaled={!aiResult} />
+
       </div>
+
+      {/* Stress Detection Component */}
+      {isWebCam && (
+        <StressDetection
+          videoElement={webcamRef.current?.video || null}
+          isRecording={isRecording}
+          className="w-full max-w-md"
+        />
+      )}
 
       <div className="w-full mt-4 p-4 border rounded-md bg-gray-50">
         <h2 className="text-lg font-semibold">Your Answer:</h2>
@@ -509,13 +533,13 @@ export const RecordAnswer = ({
           {userAnswer || "Start recording to see your ansewer here"}
         </p>
 
-        {interimResult && (
-          <p className="text-sm text-gray-500 mt-2">
+        {interimResult &&
+        <p className="text-sm text-gray-500 mt-2">
             <strong>Current Speech:</strong>
             {interimResult}
           </p>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 };

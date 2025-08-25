@@ -1,16 +1,16 @@
 import * as faceapi from 'face-api.js';
 import { toast } from 'sonner';
 
-// Initialize face-api models on application startup
+
 export const initializeFaceModels = async () => {
   try {
     console.log('Loading face-api models...');
     await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-      faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('/models')
-    ]);
+    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+    faceapi.nets.faceExpressionNet.loadFromUri('/models')]
+    );
     console.log('Face-api models loaded successfully');
     return true;
   } catch (error) {
@@ -22,10 +22,10 @@ export const initializeFaceModels = async () => {
   }
 };
 
-// Call this function in your main application entry point
+
 export const setupAnalysisModels = () => {
-  // Initialize face-api models
-  initializeFaceModels().then(success => {
+
+  initializeFaceModels().then((success) => {
     if (success) {
       console.log('Analysis models initialized successfully');
     }

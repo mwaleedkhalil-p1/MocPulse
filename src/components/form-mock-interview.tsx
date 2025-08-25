@@ -12,14 +12,15 @@ import { toast } from "sonner";
 import { Headings } from "./headings";
 import { Button } from "./ui/button";
 import { Loader, Trash2 } from "lucide-react";
+import { handleAPIError, getErrorMessage } from "@/lib/api-utils";
 import { Separator } from "./ui/separator";
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "./ui/form";
+  FormMessage } from
+"./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { chatSession } from "@/scripts";
@@ -29,8 +30,8 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
+  updateDoc } from
+"firebase/firestore";
 import { db } from "@/config/firebase.config";
 import { CVUpload } from "./cv-upload";
 
@@ -39,19 +40,19 @@ interface FormMockInterviewProps {
 }
 
 const formSchema = z.object({
-  position: z
-    .string()
-    .min(1, "Position is required")
-    .max(100, "Position must be 100 characters or less"),
+  position: z.
+  string().
+  min(1, "Position is required").
+  max(100, "Position must be 100 characters or less"),
   description: z.string().min(10, "Description is required"),
-  experience: z.coerce
-    .number()
-    .min(0, "Experience cannot be empty or negative"),
+  experience: z.coerce.
+  number().
+  min(0, "Experience cannot be empty or negative"),
   techStack: z.string().min(1, "Tech stack must be at least a character"),
-  numberOfQuestions: z.coerce
-    .number()
-    .min(1, "Must have at least 1 question")
-    .max(10, "Maximum 10 questions allowed")
+  numberOfQuestions: z.coerce.
+  number().
+  min(1, "Must have at least 1 question").
+  max(10, "Maximum 10 questions allowed")
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -61,7 +62,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       numberOfQuestions: 5
-    },
+    }
   });
 
   const { isValid, isSubmitting } = form.formState;
@@ -71,15 +72,15 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
   const navigate = useNavigate();
   const { userId } = useAuth();
 
-  const title = initialData
-    ? initialData.position
-    : "Create a new mock interview";
+  const title = initialData ?
+  initialData.position :
+  "Create a new mock interview";
 
   const breadCrumpPage = initialData ? initialData?.position : "Create";
   const actions = initialData ? "Save Changes" : "Create";
-  const toastMessage = initialData
-    ? { title: "Updated..!", description: "Changes saved successfully..." }
-    : { title: "Created..!", description: "New Mock Interview created..." };
+  const toastMessage = initialData ?
+  { title: "Updated..!", description: "Changes saved successfully..." } :
+  { title: "Created..!", description: "New Mock Interview created..." };
 
   const cleanAiResponse = (responseText: string) => {
     let cleanText = responseText.trim();
@@ -119,10 +120,15 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
         The questions should assess skills in ${data?.techStack} development and best practices, problem-solving, and experience handling complex requirements. Please format the output strictly as an array of JSON objects without any additional labels, code blocks, or explanations. Return only the JSON array with questions and answers.
         `;
 
-    const aiResult = await chatSession.sendMessage(prompt);
-    const cleanedResponse = cleanAiResponse(aiResult.response.text());
-
-    return cleanedResponse;
+    try {
+      const aiResult = await chatSession.sendMessage(prompt);
+      const cleanedResponse = cleanAiResponse(aiResult.response.text());
+      return cleanedResponse;
+    } catch (error) {
+      console.error('AI response generation failed:', error);
+      handleAPIError(error, "Question generation");
+      throw new Error(`Failed to generate questions: ${getErrorMessage(error)}`);
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -137,7 +143,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
             questions: aiResult,
             ...data,
             cvData,
-            updatedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
           }).catch((error) => console.log(error));
           toast(toastMessage.title, { description: toastMessage.description });
         }
@@ -150,7 +156,7 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
             userId,
             cvData,
             questions: aiResult,
-            createdAt: serverTimestamp(),
+            createdAt: serverTimestamp()
           });
 
           toast(toastMessage.title, { description: toastMessage.description });
@@ -160,8 +166,11 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
       navigate("/generate", { replace: true });
     } catch (error) {
       console.log(error);
-      toast.error("Error..", {
-        description: `Something went wrong. Please try again later`,
+
+
+      const errorMessage = getErrorMessage(error);
+      toast.error("Failed to create interview", {
+        description: errorMessage
       });
     } finally {
       setLoading(false);
@@ -203,26 +212,26 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
     <div className="w-full flex-col space-y-4">
       <CustomBreadCrumb
         breadCrumbPage={breadCrumpPage}
-        breadCrumpItems={[{ label: "Mock Interviews", link: "/generate" }]}
-      />
+        breadCrumpItems={[{ label: "Mock Interviews", link: "/generate" }]} />
+
 
       <div className="mt-4 flex items-center justify-between w-full">
         <Headings title={title} isSubHeading />
 
-        {initialData && (
-          <Button
-            size={"icon"}
-            variant={"ghost"}
-            onClick={handleDelete}
-            disabled={deleteLoading || loading}
-          >
-            {deleteLoading ? (
-              <Loader className="min-w-4 min-h-4 text-red-500 animate-spin" />
-            ) : (
-              <Trash2 className="min-w-4 min-h-4 text-red-500" />
-            )}
+        {initialData &&
+        <Button
+          size={"icon"}
+          variant={"ghost"}
+          onClick={handleDelete}
+          disabled={deleteLoading || loading}>
+
+            {deleteLoading ?
+          <Loader className="min-w-4 min-h-4 text-red-500 animate-spin" /> :
+
+          <Trash2 className="min-w-4 min-h-4 text-red-500" />
+          }
           </Button>
-        )}
+        }
       </div>
 
       <Separator className="my-4" />
@@ -235,156 +244,156 @@ export const FormMockInterview = ({ initialData }: FormMockInterviewProps) => {
         <div className="mt-4">
           <CVUpload onCVData={setCvData} />
         </div>
-        {cvData && (
-          <div className="mt-4 p-4 bg-green-50 rounded-md">
+        {cvData &&
+        <div className="mt-4 p-4 bg-green-50 rounded-md">
             <p className="text-sm text-green-600">CV processed successfully!</p>
           </div>
-        )}
+        }
       </div>
 
       <FormProvider {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="w-full p-8 rounded-lg flex-col flex items-start justify-start gap-6 shadow-md"
-        >
+          className="w-full p-8 rounded-lg flex-col flex items-start justify-start gap-6 shadow-md">
+
           <FormField
             control={form.control}
             name="position"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-4">
+            render={({ field }) =>
+            <FormItem className="w-full space-y-4">
                 <div className="w-full flex items-center justify-between">
                   <FormLabel>Job Role / Job Position</FormLabel>
                   <FormMessage className="text-sm" />
                 </div>
                 <FormControl>
                   <Input
-                    className="h-12"
-                    disabled={loading}
-                    placeholder="eg:- Full Stack Developer"
-                    {...field}
-                    value={field.value || ""}
-                  />
+                  className="h-12"
+                  disabled={loading}
+                  placeholder="eg:- Full Stack Developer"
+                  {...field}
+                  value={field.value || ""} />
+
                 </FormControl>
               </FormItem>
-            )}
-          />
+            } />
+
 
           <FormField
             control={form.control}
             name="description"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-4">
+            render={({ field }) =>
+            <FormItem className="w-full space-y-4">
                 <div className="w-full flex items-center justify-between">
                   <FormLabel>Job Description</FormLabel>
                   <FormMessage className="text-sm" />
                 </div>
                 <FormControl>
                   <Textarea
-                    className="h-12"
-                    disabled={loading}
-                    placeholder="eg:- describe your job role"
-                    {...field}
-                    value={field.value || ""}
-                  />
+                  className="h-12"
+                  disabled={loading}
+                  placeholder="eg:- describe your job role"
+                  {...field}
+                  value={field.value || ""} />
+
                 </FormControl>
               </FormItem>
-            )}
-          />
+            } />
+
 
           <FormField
             control={form.control}
             name="experience"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-4">
+            render={({ field }) =>
+            <FormItem className="w-full space-y-4">
                 <div className="w-full flex items-center justify-between">
                   <FormLabel>Years of Experience</FormLabel>
                   <FormMessage className="text-sm" />
                 </div>
                 <FormControl>
                   <Input
-                    type="number"
-                    min="0"
-                    className="h-12"
-                    disabled={loading}
-                    placeholder="eg:- 5 Years"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
+                  type="number"
+                  min="0"
+                  className="h-12"
+                  disabled={loading}
+                  placeholder="eg:- 5 Years"
+                  {...field}
+                  value={field.value ?? ""} />
+
                 </FormControl>
               </FormItem>
-            )}
-          />
+            } />
+
 
           <FormField
             control={form.control}
             name="techStack"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-4">
+            render={({ field }) =>
+            <FormItem className="w-full space-y-4">
                 <div className="w-full flex items-center justify-between">
                   <FormLabel>Tech Stacks</FormLabel>
                   <FormMessage className="text-sm" />
                 </div>
                 <FormControl>
                   <Textarea
-                    className="h-12"
-                    disabled={loading}
-                    placeholder="eg:- React, TypeScript..."
-                    {...field}
-                    value={field.value || ""}
-                  />
+                  className="h-12"
+                  disabled={loading}
+                  placeholder="eg:- React, TypeScript..."
+                  {...field}
+                  value={field.value || ""} />
+
                 </FormControl>
               </FormItem>
-            )}
-          />
+            } />
+
 
           <FormField
             control={form.control}
             name="numberOfQuestions"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-4">
+            render={({ field }) =>
+            <FormItem className="w-full space-y-4">
                 <div className="w-full flex items-center justify-between">
                   <FormLabel>Number of Questions</FormLabel>
                   <FormMessage className="text-sm" />
                 </div>
                 <FormControl>
                   <Input
-                    type="number"
-                    min="1"
-                    max="10"
-                    className="h-12"
-                    disabled={loading}
-                    placeholder="Number of questions (1-10)"
-                    {...field}
-                    value={field.value ?? "5"}
-                  />
+                  type="number"
+                  min="1"
+                  max="10"
+                  className="h-12"
+                  disabled={loading}
+                  placeholder="Number of questions (1-10)"
+                  {...field}
+                  value={field.value ?? "5"} />
+
                 </FormControl>
               </FormItem>
-            )}
-          />
+            } />
+
 
           <div className="w-full flex items-center justify-end gap-6">
             <Button
               type="reset"
               size={"sm"}
               variant={"outline"}
-              disabled={isSubmitting || loading}
-            >
+              disabled={isSubmitting || loading}>
+
               Reset
             </Button>
             <Button
               type="submit"
               size={"sm"}
-              disabled={isSubmitting || !isValid || loading}
-            >
-              {loading ? (
-                <Loader className="text-gray-50 animate-spin" />
-              ) : (
-                actions
-              )}
+              disabled={isSubmitting || !isValid || loading}>
+
+              {loading ?
+              <Loader className="text-gray-50 animate-spin" /> :
+
+              actions
+              }
             </Button>
           </div>
         </form>
       </FormProvider>
-    </div>
-  );
+    </div>);
+
 };

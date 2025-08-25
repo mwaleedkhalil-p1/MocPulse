@@ -23,21 +23,21 @@ export interface Interview {
   techStack: string;
   numberOfQuestions: number;
   cvData?: CVData;
-  questions: { question: string; answer: string }[];
+  questions: {question: string;answer: string;}[];
   createdAt: Timestamp;
   updateAt: Timestamp;
 }
 
 export interface ToneAnalysis {
-  pitch: number; // Average pitch (0-100)
-  speed: number; // Words per minute
+  pitch: number;
+  speed: number;
   confidence: "confident" | "hesitant" | "authoritative" | "nervous" | "enthusiastic";
   feedback: string;
 }
 
 export interface EmotionAnalysis {
   primary: "happiness" | "sadness" | "anger" | "surprise" | "frustration" | "neutral";
-  intensity: number; // 0-100
+  intensity: number;
   timeline: Array<{
     emotion: string;
     timestamp: number;
@@ -53,6 +53,18 @@ export interface GestureAnalysis {
   feedback: string;
 }
 
+export interface StressAnalysis {
+  stress: boolean;
+  confidence: number;
+  features: string[];
+  timeline: Array<{
+    stress: boolean;
+    confidence: number;
+    timestamp: number;
+  }>;
+  feedback: string;
+}
+
 export interface UserAnswer {
   id: string;
   mockIdRef: string;
@@ -64,9 +76,10 @@ export interface UserAnswer {
   userId: string;
   createdAt: Timestamp;
   updateAt: Timestamp;
-  // New analysis fields
+
   toneAnalysis?: ToneAnalysis;
   emotionAnalysis?: EmotionAnalysis;
   gestureAnalysis?: GestureAnalysis;
+  stressAnalysis?: StressAnalysis;
   cvData?: CVData;
 }

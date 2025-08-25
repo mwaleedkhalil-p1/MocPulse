@@ -5,7 +5,7 @@ export const Footer: React.FC = () => {
     <div className="w-full bg-black text-gray-300 hover:text-gray-100 py-8">
       <Container>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* First Column: About Us */}
+          {}
           <div>
             <h3 className="font-bold text-lg mb-4">About Us</h3>
             <p>
@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
             </p>
           </div>
 
-          {/* Second Column: Contact */}
+          {}
           <div>
             <h3 className="font-bold text-lg mb-4">Contact Us</h3>
             <p className="mb-4">City University of Science and Information Technology</p>
@@ -27,6 +27,6 @@ export const Footer: React.FC = () => {
           </div>
         </div>
       </Container>
-    </div>
-  );
+    </div>);
+
 };

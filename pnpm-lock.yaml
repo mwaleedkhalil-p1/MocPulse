@@ -17,6 +17,9 @@ importers:
       '@capacitor/core':
         specifier: ^7.2.0
         version: 7.4.2
+      '@capacitor/device':
+        specifier: ^7.0.1
+        version: 7.0.1(@capacitor/core@7.4.2)
       '@clerk/clerk-react':
         specifier: ^5.22.6
         version: 5.22.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -267,6 +270,11 @@ packages:
 
   '@capacitor/core@7.4.2':
     resolution: {integrity: sha512-akCf9A1FUR8AWTtmgGjHEq6LmGsjA2U7igaJ9PxiCBfyxKqlDbuGHrlNdpvHEjV5tUPH3KYtkze6gtFcNKPU9A==}
+
+  '@capacitor/device@7.0.1':
+    resolution: {integrity: sha512-ImjR2LmCEhbckYtOHXTfi5v6B7d4HPX9uKIAQs7wzzmE+yRRXuUTEzARBQ00dZDInAInkbuyQRdjwPTSHZUpnw==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
 
   '@clerk/clerk-react@5.22.6':
     resolution: {integrity: sha512-5e1bMAxpXC9Br8e0Srf4TTc+yDrur1VU6sUAnGliluT85FzbJDLgHG35sUqD/6htkHBnx7zwe38EoDsh8WakUg==}
@@ -2901,6 +2909,10 @@ snapshots:
   '@capacitor/core@7.4.2':
     dependencies:
       tslib: 2.8.1
+
+  '@capacitor/device@7.0.1(@capacitor/core@7.4.2)':
+    dependencies:
+      '@capacitor/core': 7.4.2
 
   '@clerk/clerk-react@5.22.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:

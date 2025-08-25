@@ -17,34 +17,36 @@ import { Feedback } from "./routes/feedback";
 import { Mission } from "./routes/mission";
 import { Contact } from "./routes/contact";
 import { WebsiteFeedback } from "./routes/website-feedback";
+import { StressDetectionDemo } from "./components/stress-detection-demo";
 
 const App = () => {
   return (
     <Router>
       <Routes>
-        {/* public routes */}
+        {}
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
           <Route path="/mission" element={<Mission />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/website-feedback" element={<WebsiteFeedback />} />
+          <Route path="/stress-demo" element={<StressDetectionDemo />} />
         </Route>
 
-        {/* authentication layout */}
+        {}
         <Route element={<AuthenticationLayout />}>
           <Route path="/signin/*" element={<SignInPage />} />
           <Route path="/signup/*" element={<SignUpPage />} />
         </Route>
 
-        {/* protected routes */}
+        {}
         <Route
           element={
-            <ProtectRoutes>
+          <ProtectRoutes>
               <MainLayout />
             </ProtectRoutes>
-          }
-        >
-          {/* add all the protect routes */}
+          }>
+
+          {}
           <Route element={<Generate />} path="/generate">
             <Route index element={<Dashboard />} />
             <Route path="create" element={<CreateEditPage />} />
@@ -52,17 +54,17 @@ const App = () => {
             <Route path="interview/:interviewId" element={<MockLoadPage />} />
             <Route
               path="interview/:interviewId/start"
-              element={<MockInterviewPage />}
-            />
+              element={<MockInterviewPage />} />
+
             <Route path="feedback/:interviewId" element={<Feedback />} />
           </Route>
         </Route>
 
-        {/* Catch-all route for 404s - redirect to home */}
+        {}
         <Route path="*" element={<HomePage />} />
       </Routes>
-    </Router>
-  );
+    </Router>);
+
 };
 
 export default App;
